@@ -4,34 +4,19 @@ import { getCategories } from "@/lib/woocommerce";
 
 export default async function CategoriesPage() {
   const categories = await getCategories();
-
-  const visibleCategories = categories.filter(
-    (category: any) => category.count > 0
-  );
+  const visibleCategories = categories.filter((c: any) => c.count > 0);
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-bg">
       <section className="mx-auto max-w-7xl px-6 py-16">
-        <p className="text-xs uppercase tracking-[0.25em] text-neutral-400">
-          Beauty Wishlist
-        </p>
-
-        <h1 className="mt-3 text-5xl font-light tracking-tight">
-          Categories
-        </h1>
-
-        <p className="mt-4 max-w-xl text-sm leading-6 text-neutral-500">
-          Explore products by category.
-        </p>
+        <p className="text-xs uppercase tracking-[0.25em] text-purple-600">Beauty Wishlist</p>
+        <h1 className="mt-3 font-display text-5xl italic tracking-tight text-ink">Categories</h1>
+        <p className="mt-4 max-w-xl text-sm leading-6 text-ink-soft">Explore products by category.</p>
 
         <div className="mt-12 grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
           {visibleCategories.map((category: any) => (
-            <Link
-              key={category.id}
-              href={`/category/${category.slug}`}
-              className="group"
-            >
-              <div className="relative aspect-square overflow-hidden bg-neutral-100">
+            <Link key={category.id} href={`/category/${category.slug}`} className="group">
+              <div className="relative aspect-square overflow-hidden rounded-3xl bg-purple-50">
                 {category.image?.src ? (
                   <Image
                     src={category.image.src}
@@ -41,20 +26,15 @@ export default async function CategoriesPage() {
                     className="object-cover transition duration-500 group-hover:scale-105"
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-neutral-400">
+                  <div className="flex h-full items-center justify-center font-display text-lg italic text-purple-400">
                     {category.name}
                   </div>
                 )}
               </div>
 
               <div className="flex items-center justify-between pt-4">
-                <h2 className="text-sm font-medium">
-                  {category.name}
-                </h2>
-
-                <span className="text-xs text-neutral-400">
-                  {category.count}
-                </span>
+                <h2 className="text-sm font-medium text-ink">{category.name}</h2>
+                <span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs text-purple-700">{category.count}</span>
               </div>
             </Link>
           ))}

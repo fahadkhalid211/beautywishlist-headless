@@ -1,26 +1,55 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #FBF7FC;
+  --surface: #FFFFFF;
+  --ink: #362B3F;
+  --ink-soft: #7A6C84;
+  --purple-50: #F5EEFB;
+  --purple-300: #D8B4FE;
+  --purple-500: #9B5DE0;
+  --purple-600: #8347C9;
+  --purple-700: #6D2FB0;
+  --blush: #F3D9EA;
+  --line: #E9DEF0;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-purple-50: var(--purple-50);
+  --color-purple-300: var(--purple-300);
+  --color-purple-500: var(--purple-500);
+  --color-purple-600: var(--purple-600);
+  --color-purple-700: var(--purple-700);
+  --color-blush: var(--blush);
+  --color-line: var(--line);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body), sans-serif;
+}
+
+::selection {
+  background: var(--purple-300);
+  color: var(--ink);
+}
+
+.blob {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 30% 30%, var(--purple-300), transparent 70%);
+  filter: blur(60px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+@media (hover: none) {
+  .group .group-hover\:translate-y-0 { transform: translateY(0); }
+  .group .group-hover\:opacity-100 { opacity: 1; }
 }

@@ -1,45 +1,42 @@
 import Link from "next/link";
 import { getProducts } from "@/lib/woocommerce";
+import ProductCard from "@/app/components/ProductCard";
 
 export default async function Home() {
   const products = await getProducts();
 
   return (
-    <main className="min-h-screen bg-white p-8">
-      <h1 className="mb-10 text-4xl font-bold">
-        Beauty Wishlist
-      </h1>
+    <main className="min-h-screen bg-bg">
+      <section className="relative overflow-hidden px-6 pb-20 pt-24">
+        <div className="blob -left-32 -top-32 h-96 w-96" />
+        <div className="blob -right-20 top-10 h-72 w-72 opacity-40" />
 
-      <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-        {products.map((product: any) => (
-          <Link
-            key={product.id}
-            href={`/product/${product.slug}`}
-            className="group block"
-          >
-            <div className="aspect-square overflow-hidden rounded-xl bg-gray-100">
-              {product.images?.[0] && (
-                <img
-                  src={product.images[0].src}
-                  alt={product.name}
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                />
-              )}
-            </div>
-
-            <h2 className="mt-3 font-medium">
-              {product.name}
-            </h2>
-
-            <p className="mt-1 text-gray-500">
-              {product.prices.currency_prefix}
-              {(Number(product.prices.price) / 100).toLocaleString(
-                "en-PK"
-              )}
-            </p>
+        <div className="relative mx-auto max-w-3xl text-center">
+          <p className="text-xs uppercase tracking-[0.3em] text-purple-600">New season edit</p>
+          <h1 className="mt-4 font-display text-5xl italic tracking-tight text-ink md:text-6xl">
+            Skincare that feels like a little luxury
+          </h1>
+          <p className="mx-auto mt-5 max-w-xl text-sm leading-6 text-ink-soft">
+            Curated cosmetics and skincare, picked for glow, not gimmicks.
+          </p>
+          <Link href="/shop" className="mt-8 inline-block rounded-full bg-purple-600 px-8 py-4 text-sm font-medium text-white transition hover:bg-purple-700">
+            Shop the Edit
           </Link>
-        ))}
-      </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 pb-24">
+        <div className="mb-10 flex items-end justify-between">
+          <h2 className="font-display text-3xl italic text-ink">Bestsellers</h2>
+          <Link href="/shop" className="text-sm text-purple-700 hover:underline">View all</Link>
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-4">
+          {products.map((product: any) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
