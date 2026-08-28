@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCategories, searchProducts } from "@/lib/woocommerce";
 import ProductCard from "@/app/components/ProductCard";
+import SortSelect from "@/app/components/SortSelect";
 
 type SearchParams = {
   category?: string;
@@ -10,6 +11,21 @@ type SearchParams = {
   sale?: string;
   stock?: string;
 };
+
+function buildHref(params: SearchParams, overrides: Partial<SearchParams>) {
+  const merged: SearchParams = { ...params, ...overrides };
+  const query = new URLSearchParams();
+
+  if (merged.category) query.set("category", merged.category);
+  if (merged.min_price) query.set("min_price", merged.min_price);
+  if (merged.max_price) query.set("max_price", merged.max_price);
+  if (merged.sort) query.set("sort", merged.sort);
+  if (merged.sale) query.set("sale", merged.sale);
+  if (merged.stock) query.set("stock", merged.stock);
+
+  const qs = query.toString();
+  return qs ? `/shop?${qs}` : "/shop";
+}
 
 export default async function ShopPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams;
@@ -44,67 +60,75 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           <h1 className="mt-2 font-display text-4xl italic tracking-tight text-ink">Shop</h1>
         </div>
 
-        <form method="GET" className="grid gap-8 md:grid-cols-[260px_1fr]">
+        <div className="grid gap-8 md:grid-cols-[260px_1fr]">
           <aside className="h-fit rounded-3xl border border-line bg-white p-6">
             <div className="mb-6">
               <h3 className="mb-3 text-sm font-semibold text-ink">Categories</h3>
-              <div className="space-y-2">
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-soft">
-                  <input type="radio" name="category" value="" defaultChecked={!params.category} className="accent-purple-600" />
+              <div className="space-y-1">
+                <Link
+                  href={buildHref(params, { category: undefined })}
+                  className={`flex items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-sm transition ${
+                    !params.category ? "bg-purple-50 font-medium text-purple-700" : "text-ink-soft hover:bg-purple-50/60"
+                  }`}
+                >
                   All Categories
+                </Link>
+                {visibleCategories.map((c: any) => {
+                  const active = params.category === String(c.id);
+                  return (
+                    <Link
+                      key={c.id}
+                      href={buildHref(params, { category: active ? undefined : String(c.id) })}
+                      className={`flex items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-sm transition ${
+                        active ? "bg-purple-50 font-medium text-purple-700" : "text-ink-soft hover:bg-purple-50/60"
+                      }`}
+                    >
+                      <span>{c.name}</span>
+                      <span className="text-xs text-ink-soft/70">{c.count}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            <form method="GET">
+              {params.category && <input type="hidden" name="category" value={params.category} />}
+
+              <div className="mb-6 border-t border-line pt-6">
+                <h3 className="mb-3 text-sm font-semibold text-ink">Price Range (PKR)</h3>
+                <div className="flex items-center gap-2">
+                  <input name="min_price" type="number" min="0" placeholder="Min" defaultValue={params.min_price || ""} className="w-full rounded-xl border border-line px-3 py-2 text-sm outline-none focus:border-purple-500" />
+                  <span className="text-ink-soft">–</span>
+                  <input name="max_price" type="number" min="0" placeholder="Max" defaultValue={params.max_price || ""} className="w-full rounded-xl border border-line px-3 py-2 text-sm outline-none focus:border-purple-500" />
+                </div>
+              </div>
+
+              <div className="mb-6 space-y-3 border-t border-line pt-6">
+                <label className="flex items-center gap-2 text-sm text-ink-soft">
+                  <input type="checkbox" name="sale" value="true" defaultChecked={params.sale === "true"} className="accent-purple-600" />
+                  On Sale
                 </label>
-                {visibleCategories.map((c: any) => (
-                  <label key={c.id} className="flex cursor-pointer items-center justify-between gap-2 text-sm text-ink-soft">
-                    <span className="flex items-center gap-2">
-                      <input type="radio" name="category" value={c.id} defaultChecked={params.category === String(c.id)} className="accent-purple-600" />
-                      {c.name}
-                    </span>
-                    <span className="text-xs text-ink-soft/70">{c.count}</span>
-                  </label>
-                ))}
+                <label className="flex items-center gap-2 text-sm text-ink-soft">
+                  <input type="checkbox" name="stock" value="true" defaultChecked={params.stock === "true"} className="accent-purple-600" />
+                  In Stock Only
+                </label>
               </div>
-            </div>
 
-            <div className="mb-6 border-t border-line pt-6">
-              <h3 className="mb-3 text-sm font-semibold text-ink">Price Range (PKR)</h3>
-              <div className="flex items-center gap-2">
-                <input name="min_price" type="number" min="0" placeholder="Min" defaultValue={params.min_price || ""} className="w-full rounded-xl border border-line px-3 py-2 text-sm outline-none focus:border-purple-500" />
-                <span className="text-ink-soft">–</span>
-                <input name="max_price" type="number" min="0" placeholder="Max" defaultValue={params.max_price || ""} className="w-full rounded-xl border border-line px-3 py-2 text-sm outline-none focus:border-purple-500" />
+              <div className="flex gap-2">
+                <button type="submit" className="flex-1 rounded-full bg-purple-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-purple-700">
+                  Apply
+                </button>
+                <Link href="/shop" className="rounded-full border border-line px-4 py-3 text-sm text-ink-soft transition hover:border-purple-300">
+                  Clear
+                </Link>
               </div>
-            </div>
-
-            <div className="mb-6 space-y-3 border-t border-line pt-6">
-              <label className="flex items-center gap-2 text-sm text-ink-soft">
-                <input type="checkbox" name="sale" value="true" defaultChecked={params.sale === "true"} className="accent-purple-600" />
-                On Sale
-              </label>
-              <label className="flex items-center gap-2 text-sm text-ink-soft">
-                <input type="checkbox" name="stock" value="true" defaultChecked={params.stock === "true"} className="accent-purple-600" />
-                In Stock Only
-              </label>
-            </div>
-
-            <div className="flex gap-2">
-              <button type="submit" className="flex-1 rounded-full bg-purple-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-purple-700">
-                Apply
-              </button>
-              <Link href="/shop" className="rounded-full border border-line px-4 py-3 text-sm text-ink-soft transition hover:border-purple-300">
-                Clear
-              </Link>
-            </div>
+            </form>
           </aside>
 
           <div>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-white px-5 py-3">
               <p className="text-sm text-ink-soft">{products.length} products</p>
-              <select name="sort" defaultValue={params.sort || ""} className="rounded-xl border border-line bg-white px-4 py-2 text-sm outline-none focus:border-purple-500">
-                <option value="">Sort: Featured</option>
-                <option value="newest">Newest</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="name">Name: A-Z</option>
-              </select>
+              <SortSelect />
             </div>
 
             {products.length === 0 ? (
@@ -120,7 +144,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
               </div>
             )}
           </div>
-        </form>
+        </div>
       </section>
     </main>
   );
