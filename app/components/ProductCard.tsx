@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import Stars from "@/app/components/StarRating";
 import { useCart } from "@/app/components/cart/CartProvider";
-
+import AddToCart from "@/app/components/cart/AddToCart";
 export default function ProductCard({ product }: { product: any }) {
   const { addItem } = useCart();
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
@@ -66,15 +66,8 @@ export default function ProductCard({ product }: { product: any }) {
             </svg>
           </button>
 
-          <div className="absolute inset-x-3 bottom-3 translate-y-2 opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-            <button
-              type="button"
-              onClick={handleAdd}
-              disabled={!product.is_in_stock || status === "loading"}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-purple-600 py-2.5 text-xs font-medium text-white shadow-lg shadow-purple-900/20 transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-ink/40"
-            >
-              {status === "loading" ? "Adding..." : status === "done" ? "Added ✓" : !product.is_in_stock ? "Sold Out" : "Add to Cart"}
-            </button>
+                    <div className="absolute inset-x-3 bottom-3 translate-y-2 opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+            <AddToCart productId={product.id} inStock={product.is_in_stock} compact />
           </div>
         </div>
 

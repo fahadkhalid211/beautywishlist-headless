@@ -5,16 +5,17 @@ import AddToCart from "@/app/components/cart/AddToCart";
 import ProductCard from "@/app/components/ProductCard";
 import Stars from "@/app/components/StarRating";
 import Gallery from "@/app/components/Gallery";
+import Carousel from "@/app/components/Carousel";
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const product = await getProduct(slug);
   if (!product) notFound();
-
   const category = product.categories?.[0];
   const related = category
-    ? (await getProductsByCategory(category.id)).filter((p: any) => p.id !== product.id).slice(0, 3)
+    ? (await getProductsByCategory(category.id)).filter((p: any) => p.id !== product.id).slice(0, 10)
     : [];
+  
 
   const rating = Number(product.average_rating) || 0;
   const reviewCount = product.review_count ?? 0;
@@ -67,29 +68,23 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <div className="mt-5 text-sm leading-7 text-ink-soft" dangerouslySetInnerHTML={{ __html: product.short_description }} />
             )}
 
-            <div className="mt-8">
-              <p className="mb-3 text-sm font-medium text-ink">Quantity</p>
-              <div className="flex w-fit items-center rounded-full border border-line">
-                <button className="px-5 py-3 text-ink-soft">−</button>
-                <span className="px-5">1</span>
-                <button className="px-5 py-3 text-ink-soft">+</button>
-              </div>
+                        <div className="mt-6">
+              <AddToCart productId={product.id} inStock={product.is_in_stock} />
             </div>
 
-            <div className="mt-6">
-              <AddToCart productId={product.id} />
-            </div>
-
-            <div className="mt-8 grid grid-cols-2 gap-4 border-t border-line pt-8 sm:grid-cols-4">
+                        <div className="mt-8 grid grid-cols-2 gap-4 border-t border-line pt-8 sm:grid-cols-4">
               {[
-                ["Free Shipping", "On orders over Rs. 3,000"],
-                ["100% Authentic", "Guaranteed original"],
-                ["Easy Returns", "14-day return policy"],
-                ["Secure Payments", "SSL encrypted checkout"],
-              ].map(([title, desc]) => (
-                <div key={title} className="text-xs text-ink-soft">
-                  <p className="font-medium text-ink">{title}</p>
-                  <p className="mt-1">{desc}</p>
+                { title: "Free Shipping", desc: "On orders over Rs. 3,000", icon: <path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z" /> },
+                { title: "100% Authentic", desc: "Guaranteed original", icon: <path d="M12 2l8 4v6c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6z" /> },
+                { title: "Easy Returns", desc: "14-day return policy", icon: <path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5" /> },
+                { title: "Secure Payments", desc: "SSL encrypted checkout", icon: <path d="M6 11V8a6 6 0 0 1 12 0v3M5 11h14v9H5z" /> },
+              ].map(({ title, desc, icon }) => (
+                <div key={title} className="flex items-start gap-3 text-xs text-ink-soft">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="shrink-0 text-purple-600">{icon}</svg>
+                  <div>
+                    <p className="font-medium text-ink">{title}</p>
+                    <p className="mt-1">{desc}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -107,9 +102,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         {related.length > 0 && (
           <div className="mt-16">
             <h2 className="mb-8 font-display text-3xl italic text-ink">You may also like</h2>
-            <div className="grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-3">
-              {related.map((p: any) => <ProductCard key={p.id} product={p} />)}
-            </div>
+            <Carousel>
+              {related.map((p: any) => (
+                <div key={p.id} className="w-[45%] shrink-0 snap-start sm:w-[31%] lg:w-[23%] xl:w-[19%]">
+                  <ProductCard product={p} />
+                </div>
+              ))}
+            </Carousel>
           </div>
         )}
       </div>
