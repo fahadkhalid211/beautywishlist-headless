@@ -22,23 +22,16 @@ export type MenuItem = {
   children: MenuItem[];
 };
 
-export async function getMenu(
-  slug: string = "main-menu"
-): Promise<MenuItem[]> {
+export async function getMenu(slug: string): Promise<MenuItem[]> {
   const res = await fetch(`${WP_URL}/wp-json/custom/v1/menu/${slug}`, {
     next: { revalidate: 300 },
   });
 
   if (!res.ok) {
-    console.error(
-      `getMenu("${slug}") failed: ${res.status} ${res.statusText} — check the menu is assigned to the "${slug}" location in Appearance > Menus > Manage Locations.`
-    );
-    return [];
-  }
+    console.error(`getMenu("${slug}") failed: ${res.status} ${res.statusText} — check the menu is assigned to the "${slug}" location in Appearance > Menus > Manage Locations.`);
     return [];
   }
 
-  const data = await res.json();
   const data = await res.json();
 
   if (!data.success) {
@@ -46,47 +39,12 @@ export async function getMenu(
     return [];
   }
 
-  const items: any[] = data.items ?? [];
-
-  const byId = new Map<number, MenuItem>();
-
-  items.forEach((item) => {
-    byId.set(item.ID, {
-      ID: item.ID,
-      title: item.title,
-      url: item.url,
-      children: [],
-    });
-  });
-
-  const tree: MenuItem[] = [];
-
-  items.forEach((item) => {
-    const node = byId.get(item.ID);
-
-    if (!node) {
-      return;
-    }
-
-    const parentId = Number(item.menu_item_parent ?? 0);
-
-    if (parentId && byId.has(parentId)) {
-      byId.get(parentId)!.children.push(node);
-    } else {
-      tree.push(node);
-    }
-  });
-
-  return tree;
+  return (data.items ?? []) as MenuItem[];
 }
 
-export function toPath(url: string): string {
+export function toPath(url: string) {
   try {
-    const parsed = new URL(url);
-
-    return (
-      parsed.pathname.replace(/\/$/, "") || "/"
-    );
+    return new URL(url).pathname.replace(/\/$/, "") || "/";
   } catch {
     return url;
   }
