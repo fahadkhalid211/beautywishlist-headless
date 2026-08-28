@@ -37,12 +37,16 @@ const emptyAddress: ContactAddress = {
   phone: "",
 };
 
-// Payment method surcharges. Store API doesn't expose gateway fees before
-// checkout submission, so these must be kept in sync with whatever fee
-// mechanism is configured in WooCommerce (see conversation notes).
-const PAYMENT_METHODS: { id: "cod" | "bacs"; label: string; fee: number }[] = [
-  { id: "cod", label: "Cash on Delivery", fee: 0 },
-  { id: "bacs", label: "Direct Bank Transfer", fee: 0 },
+type PaymentMethod = {
+  id: "cod" | "bacs";
+  title: string;
+  description: string;
+  fee: number;
+};
+
+const FALLBACK_METHODS: PaymentMethod[] = [
+  { id: "cod", title: "Cash on Delivery", description: "", fee: 0 },
+  { id: "bacs", title: "Direct Bank Transfer", description: "", fee: 0 },
 ];
 
 export default function CheckoutPage() {
@@ -51,6 +55,7 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState<ContactAddress>(emptyAddress);
   const [customerNote, setCustomerNote] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "bacs">("cod");
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(FALLBACK_METHODS);
 
   const [step, setStep] = useState<1 | 2>(1);
   const [savingAddress, setSavingAddress] = useState(false);
@@ -63,6 +68,8 @@ export default function CheckoutPage() {
     totals: any;
     address: ContactAddress;
     paymentMethod: string;
+    paymentMethodTitle: string;
+    paymentFee: number;
     shippingRateName?: string;
   } | null>(null);
 
@@ -76,6 +83,19 @@ export default function CheckoutPage() {
   const rates: any[] = ratePackage?.shipping_rates ?? [];
   const selectedRate = rates.find((r) => r.selected);
   const canPlaceOrder = step === 2 && (!needsShipping || rates.length === 0 || !!selectedRate);
+  const selectedPaymentFee = step === 2 ? paymentMethods.find((m) => m.id === paymentMethod)?.fee ?? 0 : 0;
+  const displayTotal = Number(totals?.total_price ?? 0) + selectedPaymentFee * Math.pow(10, minorUnit);
+
+  useEffect(() => {
+    fetch("/api/payment-methods")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && Array.isArray(data.methods) && data.methods.length > 0) {
+          setPaymentMethods(data.methods);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (step === 2 && rates.length > 0 && !selectedRate) {
@@ -162,6 +182,8 @@ export default function CheckoutPage() {
         totals,
         address,
         paymentMethod,
+        paymentMethodTitle: paymentMethods.find((m) => m.id === paymentMethod)?.title || paymentMethod,
+        paymentFee: selectedPaymentFee,
         shippingRateName: selectedRate?.name,
       });
       setOrderResult(data);
@@ -209,7 +231,8 @@ export default function CheckoutPage() {
                 <p>{orderSnapshot.address.email} &middot; {orderSnapshot.address.phone}</p>
                 {orderSnapshot.shippingRateName && <p className="pt-2 text-ink">Shipping: {orderSnapshot.shippingRateName}</p>}
                 <p className="text-ink">
-                  Payment: {orderSnapshot.paymentMethod === "cod" ? "Cash on Delivery" : "Direct Bank Transfer"}
+                  Payment: {orderSnapshot.paymentMethodTitle}
+                  {orderSnapshot.paymentFee > 0 && ` (+${formatMoney(orderSnapshot.paymentFee, 0, snapPrefix)} fee)`}
                 </p>
               </div>
             </div>
@@ -236,7 +259,11 @@ export default function CheckoutPage() {
               <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
                 <span className="text-sm font-medium text-ink">Total</span>
                 <span className="font-display text-xl italic text-purple-700">
-                  {formatMoney(snapTotals?.total_price, snapMinorUnit, snapPrefix)}
+                  {formatMoney(
+                    Number(snapTotals?.total_price ?? 0) + orderSnapshot.paymentFee * Math.pow(10, snapMinorUnit),
+                    snapMinorUnit,
+                    snapPrefix
+                  )}
                 </span>
               </div>
             </div>
@@ -387,7 +414,7 @@ export default function CheckoutPage() {
                   <div className="rounded-3xl border border-line bg-white p-6">
                     <h2 className="font-display text-xl italic text-ink">Payment Method</h2>
                     <div className="mt-4 space-y-3">
-                      {PAYMENT_METHODS.map((method) => (
+                      {paymentMethods.map((method) => (
                         <label
                           key={method.id}
                           className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 text-sm transition ${
@@ -402,7 +429,7 @@ export default function CheckoutPage() {
                               onChange={() => setPaymentMethod(method.id)}
                               className="h-4 w-4 text-purple-600 focus:ring-purple-400"
                             />
-                            <span className="text-ink">{method.label}</span>
+                            <span className="text-ink">{method.title}</span>
                           </span>
                           {method.fee > 0 && (
                             <span className="text-xs text-ink-soft">+{formatMoney(method.fee, 0, prefix)} fee</span>
@@ -478,12 +505,18 @@ export default function CheckoutPage() {
                     <span className="text-ink">{formatMoney(totals?.total_tax, minorUnit, prefix)}</span>
                   </div>
                 )}
+                {step === 2 && selectedPaymentFee > 0 && (
+                  <div className="flex items-center justify-between text-ink-soft">
+                    <span>{paymentMethods.find((m) => m.id === paymentMethod)?.title || "Payment"} Fee</span>
+                    <span className="text-ink">{formatMoney(selectedPaymentFee, 0, prefix)}</span>
+                  </div>
+                )}
               </div>
 
               <div className="mt-5 flex items-center justify-between border-t border-line pt-5">
                 <span className="text-sm font-medium text-ink">Total</span>
                 <span className="font-display text-2xl italic text-purple-700">
-                  {formatMoney(totals?.total_price, minorUnit, prefix)}
+                  {formatMoney(displayTotal, minorUnit, prefix)}
                 </span>
               </div>
 
