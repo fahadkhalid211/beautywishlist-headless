@@ -36,14 +36,14 @@ export default function MobileMenu({ menu }: { menu: MenuItem[] }) {
 
             <nav className="flex flex-col gap-1">
               {menu.map((item) => (
-                <div key={item.ID}>
+                <div key={item.id}>
                   <Link href={toPath(item.url)} onClick={() => setOpen(false)} className="block rounded-xl px-3 py-3 text-sm font-medium text-ink hover:bg-purple-50">
                     {item.title}
                   </Link>
                   {item.children.length > 0 && (
                     <div className="ml-3 flex flex-col border-l border-line pl-3">
                       {item.children.map((child) => (
-                        <Link key={child.ID} href={toPath(child.url)} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm text-ink-soft hover:bg-purple-50">
+                        <Link key={child.id} href={toPath(child.url)} onClick={() => setOpen(false)} className="rounded-xl px-3 py-2 text-sm text-ink-soft hover:bg-purple-50">
                           {child.title}
                         </Link>
                       ))}

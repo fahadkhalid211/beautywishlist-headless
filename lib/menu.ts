@@ -1,40 +1,45 @@
 const WP_URL = process.env.NEXT_PUBLIC_WP_URL!;
 
+export type MenuThumbnail = {
+  id: number;
+  url: string | null;
+  alt: string;
+};
+
 export type MenuItem = {
-  ID: number;
+  id: number;
   title: string;
   url: string;
+  target: string;
+  parent: number;
+  order: number;
+  type: string;
+  object: string;
+  object_id: number;
+  classes: string[];
+  description: string;
+  thumbnail: MenuThumbnail | null;
   children: MenuItem[];
 };
 
 export async function getMenu(slug: string): Promise<MenuItem[]> {
-  const res = await fetch(`${WP_URL}/wp-json/menus/v1/menus/${slug}`, {
+  const res = await fetch(`${WP_URL}/wp-json/custom/v1/menu/${slug}`, {
     next: { revalidate: 300 },
   });
 
   if (!res.ok) {
-    console.error(`getMenu("${slug}") failed: ${res.status} ${res.statusText} — check that a WordPress menu with this exact slug exists and the "WP REST API Menus" endpoint is reachable.`);
+    console.error(`getMenu("${slug}") failed: ${res.status} ${res.statusText} — check the menu is assigned to the "${slug}" location in Appearance > Menus > Manage Locations.`);
     return [];
   }
 
   const data = await res.json();
-  const items: any[] = data.items ?? [];
 
-  const byId = new Map<number, MenuItem>();
-  items.forEach((item) => byId.set(item.ID, { ...item, children: [] }));
+  if (!data.success) {
+    console.error(`getMenu("${slug}") returned an error:`, data.message ?? data);
+    return [];
+  }
 
-  const tree: MenuItem[] = [];
-  items.forEach((item) => {
-    const node = byId.get(item.ID)!;
-    const parentId = Number(item.menu_item_parent);
-    if (parentId && byId.has(parentId)) {
-      byId.get(parentId)!.children.push(node);
-    } else {
-      tree.push(node);
-    }
-  });
-
-  return tree;
+  return (data.items ?? []) as MenuItem[];
 }
 
 export function toPath(url: string) {
