@@ -19,7 +19,6 @@ export default function CartPage() {
   const totals = cart?.totals;
   const minorUnit = totals?.currency_minor_unit ?? 2;
   const prefix = totals?.currency_prefix ?? "";
-  const checkoutUrl = `${process.env.NEXT_PUBLIC_WP_URL}/checkout/`;
 
   return (
     <main className="min-h-screen bg-bg">
@@ -181,12 +180,12 @@ export default function CartPage() {
                 </span>
               </div>
 
-              <a
-                href={checkoutUrl}
+              <Link
+                href="/checkout"
                 className="mt-6 block rounded-full bg-purple-600 px-6 py-4 text-center text-sm font-medium text-white transition hover:bg-purple-700"
               >
                 Proceed to Checkout
-              </a>
+              </Link>
 
               <Link
                 href="/shop"

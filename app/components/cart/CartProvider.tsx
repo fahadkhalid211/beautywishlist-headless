@@ -8,6 +8,9 @@ type CartContextType = {
   addItem: (productId: number, quantity?: number) => Promise<void>;
   updateItem: (key: string, quantity: number) => Promise<void>;
   removeItem: (key: string) => Promise<void>;
+  refreshCart: () => Promise<void>;
+  setCartData: (data: any) => void;
+  clearCart: () => void;
   loading: boolean;
   updatingKey: string | null;
 };
@@ -85,7 +88,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const itemCount = cart?.items_count ?? 0;
 
   return (
-    <CartContext.Provider value={{ cart, itemCount, addItem, updateItem, removeItem, loading, updatingKey }}>
+    <CartContext.Provider
+      value={{
+        cart,
+        itemCount,
+        addItem,
+        updateItem,
+        removeItem,
+        refreshCart,
+        setCartData: setCart,
+        clearCart: () => setCart(null),
+        loading,
+        updatingKey,
+      }}
+    >
       {children}
     </CartContext.Provider>
   );
