@@ -12,7 +12,10 @@ export async function getMenu(slug: string): Promise<MenuItem[]> {
     next: { revalidate: 300 },
   });
 
-  if (!res.ok) return [];
+  if (!res.ok) {
+    console.error(`getMenu("${slug}") failed: ${res.status} ${res.statusText} — check that a WordPress menu with this exact slug exists and the "WP REST API Menus" endpoint is reachable.`);
+    return [];
+  }
 
   const data = await res.json();
   const items: any[] = data.items ?? [];

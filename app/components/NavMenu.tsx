@@ -5,7 +5,7 @@ export default function NavMenu({ items }: { items: MenuItem[] }) {
   if (items.length === 0) {
     return (
       <p className="px-6 py-3 text-xs text-ink-soft">
-        Add a WordPress menu named &quot;Primary Menu&quot; to populate this bar.
+        Assign a WordPress menu with slug &quot;main-menu&quot; to populate this bar.
       </p>
     );
   }

@@ -1,9 +1,18 @@
 import Link from "next/link";
-import { getProducts } from "@/lib/woocommerce";
+import { getProducts, getCategories } from "@/lib/woocommerce";
 import ProductCard from "@/app/components/ProductCard";
+import CategoryCircles from "@/app/components/CategoryCircles";
 
 export default async function Home() {
-  const products = await getProducts();
+  const [products, categories] = await Promise.all([
+    getProducts(),
+    getCategories(),
+  ]);
+
+  const topCategories = categories
+    .filter((c: any) => c.count > 0)
+    .sort((a: any, b: any) => b.count - a.count)
+    .slice(0, 4);
 
   return (
     <main className="min-h-screen bg-bg">
@@ -24,6 +33,8 @@ export default async function Home() {
           </Link>
         </div>
       </section>
+
+      <CategoryCircles categories={topCategories} />
 
       <section className="mx-auto max-w-7xl px-6 pb-24">
         <div className="mb-10 flex items-end justify-between">
