@@ -7,26 +7,52 @@ export type MenuItem = {
   children: MenuItem[];
 };
 
-export async function getMenu(slug: string): Promise<MenuItem[]> {
-  const res = await fetch(`${WP_URL}/wp-json/menus/v1/menus/${slug}`, {
-    next: { revalidate: 300 },
-  });
+export async function getMenu(
+  slug: string = "main-menu"
+): Promise<MenuItem[]> {
+  const res = await fetch(
+    `${WP_URL}/wp-json/custom/v1/menu/${slug}`,
+    {
+      next: { revalidate: 300 },
+    }
+  );
 
   if (!res.ok) {
-    console.error(`getMenu("${slug}") failed: ${res.status} ${res.statusText} — check that a WordPress menu with this exact slug exists and the "WP REST API Menus" endpoint is reachable.`);
+    console.error(
+      `getMenu("${slug}") failed: ${res.status} ${res.statusText}`
+    );
+
     return [];
   }
 
   const data = await res.json();
-  const items: any[] = data.items ?? [];
+
+  const items: any[] = data.items ?? data ?? [];
 
   const byId = new Map<number, MenuItem>();
-  items.forEach((item) => byId.set(item.ID, { ...item, children: [] }));
+
+  items.forEach((item) => {
+    byId.set(item.ID, {
+      ID: item.ID,
+      title: item.title,
+      url: item.url,
+      children: [],
+    });
+  });
 
   const tree: MenuItem[] = [];
+
   items.forEach((item) => {
-    const node = byId.get(item.ID)!;
-    const parentId = Number(item.menu_item_parent);
+    const node = byId.get(item.ID);
+
+    if (!node) {
+      return;
+    }
+
+    const parentId = Number(
+      item.menu_item_parent ?? 0
+    );
+
     if (parentId && byId.has(parentId)) {
       byId.get(parentId)!.children.push(node);
     } else {
@@ -37,9 +63,13 @@ export async function getMenu(slug: string): Promise<MenuItem[]> {
   return tree;
 }
 
-export function toPath(url: string) {
+export function toPath(url: string): string {
   try {
-    return new URL(url).pathname.replace(/\/$/, "") || "/";
+    const parsed = new URL(url);
+
+    return (
+      parsed.pathname.replace(/\/$/, "") || "/"
+    );
   } catch {
     return url;
   }
