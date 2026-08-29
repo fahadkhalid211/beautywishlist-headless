@@ -1,4 +1,3 @@
-import Image from "next/image";
 import ProductCard from "@/app/components/ProductCard";
 import ProductFilters from "@/app/components/ProductFilters";
 import MobileFilterDrawer from "@/app/components/MobileFilterDrawer";
@@ -9,7 +8,6 @@ import { ListingFilters } from "@/lib/urlHelpers";
 export default function ProductListing({
   title,
   description,
-  bannerImage,
   products,
   categories,
   activeCategorySlug,
@@ -21,7 +19,6 @@ export default function ProductListing({
 }: {
   title: string;
   description?: string;
-  bannerImage?: { src: string; alt: string };
   products: any[];
   categories: any[];
   activeCategorySlug?: string;
@@ -53,12 +50,6 @@ export default function ProductListing({
           </aside>
 
           <div>
-            {bannerImage && (
-              <div className="relative mb-6 aspect-[3/1] w-full overflow-hidden rounded-3xl bg-purple-50">
-                <Image src={bannerImage.src} alt={bannerImage.alt} fill sizes="(max-width: 768px) 100vw, 800px" className="object-cover" priority />
-              </div>
-            )}
-
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-white px-5 py-3">
               <p className="text-sm text-ink-soft">{totalProducts} products</p>
               <div className="flex items-center gap-2">

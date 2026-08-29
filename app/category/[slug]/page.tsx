@@ -51,7 +51,6 @@ export default async function CategoryPage({
     <ProductListing
       title={category.name}
       description={category.description}
-      bannerImage={category.image?.src ? { src: category.image.src, alt: category.image.alt || category.name } : undefined}
       products={products}
       categories={categories}
       activeCategorySlug={slug}

@@ -15,18 +15,24 @@ function formatMoney(amount: string | number | undefined, minorUnit: number, pre
 export default function CartDrawer() {
   const { cart, drawerOpen, closeDrawer, updateItem, removeItem, updatingKey } = useCart();
 
-  if (!drawerOpen) return null;
-
   const items = cart?.items ?? [];
   const totals = cart?.totals;
   const minorUnit = totals?.currency_minor_unit ?? 2;
   const prefix = totals?.currency_prefix ?? "";
 
   return (
-    <div className="fixed inset-0 z-[80]">
+    <div
+      className={`fixed inset-0 z-[80] transition-opacity duration-300 ${
+        drawerOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+      }`}
+    >
       <div className="absolute inset-0 bg-ink/30" onClick={closeDrawer} />
 
-      <div className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-bg shadow-2xl">
+      <div
+        className={`absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-bg shadow-2xl transition-transform duration-300 ease-out ${
+          drawerOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
         <div className="flex items-center justify-between border-b border-line bg-white px-5 py-4">
           <h2 className="font-display text-xl italic text-ink">Your Cart</h2>
           <button
