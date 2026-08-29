@@ -1,10 +1,23 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useCart } from "./cart/CartProvider";
 
 export default function HeaderActions() {
   const { itemCount } = useCart();
+  const [bump, setBump] = useState(false);
+  const prevCount = useRef(itemCount);
+
+  useEffect(() => {
+    if (itemCount > prevCount.current) {
+      setBump(true);
+      const timer = setTimeout(() => setBump(false), 400);
+      prevCount.current = itemCount;
+      return () => clearTimeout(timer);
+    }
+    prevCount.current = itemCount;
+  }, [itemCount]);
 
   return (
     <div className="ml-auto flex shrink-0 items-center gap-1">
@@ -22,7 +35,13 @@ export default function HeaderActions() {
         Wishlist
       </Link>
 
-      <Link href="/cart" className="flex items-center gap-2 rounded-full bg-purple-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-purple-700 md:px-4">
+      <Link
+        href="/cart"
+        className={`flex items-center gap-2 rounded-full bg-purple-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-purple-700 md:px-4 ${
+          bump ? "scale-110" : "scale-100"
+        }`}
+        style={{ transition: "transform 200ms ease-out" }}
+      >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3h2l2.4 12.4a2 2 0 0 0 2 1.6h7.2a2 2 0 0 0 2-1.6L21 6H6" /><circle cx="9" cy="21" r="1" /><circle cx="17" cy="21" r="1" /></svg>
         <span className="hidden md:inline">Cart</span>
         {itemCount > 0 && (

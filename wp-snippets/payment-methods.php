@@ -82,7 +82,7 @@ add_action('woocommerce_store_api_checkout_update_order_from_request', function 
         $item->set_name($label);
         $item->set_amount($fee);
         $item->set_total($fee);
-        $item->set_tax_status('none');
+        $item->set_tax_status('taxable');
 
         $order->add_item($item);
         $order->calculate_totals();
@@ -105,7 +105,55 @@ add_action('rest_api_init', function () {
         'permission_callback' => '__return_true',
     ]);
 
+    register_rest_route('custom/v1', '/free-shipping-threshold', [
+        'methods'             => 'GET',
+        'callback'            => 'bw_get_free_shipping_threshold',
+        'permission_callback' => '__return_true',
+    ]);
+
 });
+
+
+/**
+ * Free Shipping Threshold API.
+ *
+ * Scans all shipping zones for an enabled "Free Shipping" method that
+ * requires a minimum order amount, and returns the lowest such threshold
+ * found. Lets the frontend show a dynamic "spend X more for free shipping"
+ * widget without hardcoding the amount — if it's changed in WooCommerce
+ * settings, the frontend picks it up automatically.
+ */
+function bw_get_free_shipping_threshold() {
+
+    $lowest = null;
+
+    $zones   = WC_Shipping_Zones::get_zones();
+    $zones[] = ['zone_id' => 0]; // include "Locations not covered by your other zones"
+
+    foreach ($zones as $zone_data) {
+
+        $zone = new WC_Shipping_Zone($zone_data['zone_id']);
+
+        foreach ($zone->get_shipping_methods(true) as $method) {
+
+            if ($method->id !== 'free_shipping' || $method->enabled !== 'yes') {
+                continue;
+            }
+
+            $min_amount = isset($method->min_amount) ? floatval($method->min_amount) : 0;
+
+            if ($min_amount > 0 && ($lowest === null || $min_amount < $lowest)) {
+                $lowest = $min_amount;
+            }
+        }
+    }
+
+    return rest_ensure_response([
+        'success'   => true,
+        'threshold' => $lowest,
+        'currency'  => get_woocommerce_currency(),
+    ]);
+}
 
 
 function bw_get_payment_methods() {
@@ -123,12 +171,32 @@ function bw_get_payment_methods() {
         $settings = get_option('woocommerce_' . $id . '_settings', []);
         $fee      = isset($settings['extra_fee']) ? floatval($settings['extra_fee']) : 0;
 
-        $methods[] = [
+        $method = [
             'id'          => $id,
             'title'       => $gateway->get_title(),
             'description' => $gateway->get_description(),
             'fee'         => $fee,
         ];
+
+        if ($id === 'bacs') {
+
+            $accounts = get_option('woocommerce_bacs_accounts', []);
+
+            $method['instructions'] = isset($settings['instructions']) ? $settings['instructions'] : '';
+
+            $method['accounts'] = array_map(function ($account) {
+                return [
+                    'account_name'   => $account['account_name'] ?? '',
+                    'account_number' => $account['account_number'] ?? '',
+                    'bank_name'      => $account['bank_name'] ?? '',
+                    'sort_code'      => $account['sort_code'] ?? '',
+                    'iban'           => $account['iban'] ?? '',
+                    'bic'            => $account['bic'] ?? '',
+                ];
+            }, is_array($accounts) ? $accounts : []);
+        }
+
+        $methods[] = $method;
     }
 
     return rest_ensure_response([

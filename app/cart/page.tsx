@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/app/components/cart/CartProvider";
 import QuantitySelector from "@/app/components/QuantitySelector";
+import FreeShippingProgress from "@/app/components/FreeShippingProgress";
 
 function formatMoney(amount: string | number | undefined, minorUnit: number, prefix = "") {
   if (amount === undefined) return "";
@@ -12,13 +14,57 @@ function formatMoney(amount: string | number | undefined, minorUnit: number, pre
 }
 
 export default function CartPage() {
-  const { cart, updateItem, removeItem, updatingKey } = useCart();
+  const { cart, updateItem, removeItem, updatingKey, setCartData } = useCart();
 
   const loading = cart === null;
   const items = cart?.items ?? [];
   const totals = cart?.totals;
   const minorUnit = totals?.currency_minor_unit ?? 2;
   const prefix = totals?.currency_prefix ?? "";
+  const coupons = cart?.coupons ?? [];
+  const taxLines = totals?.tax_lines ?? [];
+
+  const [couponCode, setCouponCode] = useState("");
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+
+  async function handleApplyCoupon(e: React.FormEvent) {
+    e.preventDefault();
+    if (!couponCode.trim()) return;
+    setApplyingCoupon(true);
+    setCouponError(null);
+    try {
+      const res = await fetch("/api/cart/coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || "Unable to apply coupon");
+      }
+      setCartData(data);
+      setCouponCode("");
+    } catch (err: any) {
+      setCouponError(err.message || "Unable to apply coupon");
+    } finally {
+      setApplyingCoupon(false);
+    }
+  }
+
+  async function handleRemoveCoupon(code: string) {
+    try {
+      const res = await fetch("/api/cart/coupon", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (res.ok) setCartData(data);
+    } catch {
+      // no-op
+    }
+  }
 
   return (
     <main className="min-h-screen bg-bg">
@@ -64,6 +110,12 @@ export default function CartPage() {
             >
               Start Shopping
             </Link>
+          </div>
+        )}
+
+        {items.length > 0 && (
+          <div className="mb-6">
+            <FreeShippingProgress />
           </div>
         )}
 
@@ -165,12 +217,51 @@ export default function CartPage() {
                     <span className="text-ink">{formatMoney(totals?.total_shipping, minorUnit, prefix)}</span>
                   </div>
                 )}
-                {Number(totals?.total_tax) > 0 && (
-                  <div className="flex items-center justify-between text-ink-soft">
-                    <span>Tax</span>
-                    <span className="text-ink">{formatMoney(totals?.total_tax, minorUnit, prefix)}</span>
+                {taxLines.length > 0
+                  ? taxLines.map((line: any) => (
+                      <div key={line.name} className="flex items-center justify-between text-ink-soft">
+                        <span>{line.name}</span>
+                        <span className="text-ink">{formatMoney(line.price, minorUnit, prefix)}</span>
+                      </div>
+                    ))
+                  : Number(totals?.total_tax) > 0 && (
+                      <div className="flex items-center justify-between text-ink-soft">
+                        <span>Tax</span>
+                        <span className="text-ink">{formatMoney(totals?.total_tax, minorUnit, prefix)}</span>
+                      </div>
+                    )}
+              </div>
+
+              <div className="mt-5 border-t border-line pt-5">
+                {coupons.length > 0 && (
+                  <div className="mb-3 space-y-2">
+                    {coupons.map((c: any) => (
+                      <div key={c.code} className="flex items-center justify-between rounded-xl bg-purple-50 px-3 py-2 text-xs">
+                        <span className="font-medium text-purple-700">{c.code.toUpperCase()}</span>
+                        <button type="button" onClick={() => handleRemoveCoupon(c.code)} className="text-ink-soft hover:text-rose-500">
+                          Remove
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
+                <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                    placeholder="Coupon code"
+                    className="min-w-0 flex-1 rounded-full border border-line px-4 py-2.5 text-sm outline-none focus:border-purple-400"
+                  />
+                  <button
+                    type="submit"
+                    disabled={applyingCoupon}
+                    className="rounded-full border border-line px-4 py-2.5 text-sm font-medium text-ink-soft transition hover:border-purple-300 hover:text-purple-700 disabled:opacity-50"
+                  >
+                    {applyingCoupon ? "..." : "Apply"}
+                  </button>
+                </form>
+                {couponError && <p className="mt-2 text-xs text-rose-500">{couponError}</p>}
               </div>
 
               <div className="mt-5 flex items-center justify-between border-t border-line pt-5">

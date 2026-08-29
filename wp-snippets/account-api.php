@@ -367,6 +367,96 @@ function bw_handle_get_orders($request) {
     ]);
 }
 
+/**
+ * Shared order payload builder — used by both the authenticated order
+ * detail endpoint and the public (order-key based) invoice endpoint.
+ * Tax is pulled live from WooCommerce's own calculated tax totals on the
+ * order, so it always reflects whatever tax settings are configured —
+ * nothing here is a hardcoded rate.
+ */
+function bw_build_order_payload($order) {
+
+    $items = [];
+
+    foreach ($order->get_items() as $item) {
+
+        $product   = $item->get_product();
+        $thumbnail = null;
+        $sku       = '';
+
+        if ($product) {
+            $image_id = $product->get_image_id();
+            if ($image_id) {
+                $thumbnail = wp_get_attachment_image_url($image_id, 'thumbnail');
+            }
+            $sku = $product->get_sku();
+        }
+
+        $quantity = $item->get_quantity();
+
+        $items[] = [
+            'name'       => $item->get_name(),
+            'sku'        => $sku,
+            'quantity'   => $quantity,
+            'unit_price' => $quantity ? (float) $item->get_total() / $quantity : (float) $item->get_total(),
+            'total'      => $item->get_total(),
+            'thumbnail'  => $thumbnail,
+        ];
+    }
+
+    $tax_lines = [];
+
+    foreach ($order->get_tax_totals() as $tax_total) {
+        $tax_lines[] = [
+            'label'  => $tax_total->label,
+            'amount' => $tax_total->amount,
+        ];
+    }
+
+    $fee_lines = [];
+
+    foreach ($order->get_fees() as $fee) {
+        $fee_lines[] = [
+            'name'  => $fee->get_name(),
+            'total' => $fee->get_total(),
+        ];
+    }
+
+    return [
+        'id'               => $order->get_id(),
+        'order_number'     => $order->get_order_number(),
+        'order_key'        => $order->get_order_key(),
+        'date'             => $order->get_date_created()->date('c'),
+        'status'           => $order->get_status(),
+        'currency'         => $order->get_currency(),
+        'total'            => $order->get_total(),
+        'subtotal'         => $order->get_subtotal(),
+        'shipping_total'   => $order->get_shipping_total(),
+        'shipping_method'  => $order->get_shipping_method(),
+        'discount_total'   => $order->get_total_discount(),
+        'tax_total'        => $order->get_total_tax(),
+        'tax_lines'        => $tax_lines,
+        'fee_lines'        => $fee_lines,
+        'payment_method'   => $order->get_payment_method_title(),
+        'billing_address'  => $order->get_formatted_billing_address(),
+        'shipping_address' => $order->get_formatted_shipping_address() ?: $order->get_formatted_billing_address(),
+        'billing_email'    => $order->get_billing_email(),
+        'billing_phone'    => $order->get_billing_phone(),
+        'customer_note'    => $order->get_customer_note(),
+        'items'            => $items,
+        'store'            => [
+            'name'    => get_bloginfo('name'),
+            'address' => trim(implode(', ', array_filter([
+                get_option('woocommerce_store_address'),
+                get_option('woocommerce_store_address_2'),
+                get_option('woocommerce_store_city'),
+                get_option('woocommerce_store_postcode'),
+            ]))),
+            'email'   => get_option('admin_email'),
+        ],
+    ];
+}
+
 function bw_handle_get_order($request) {
 
     $user = bw_require_auth($request);
@@ -389,46 +479,35 @@ function bw_handle_get_order($request) {
         return new WP_Error('forbidden', 'You do not have access to this order.', ['status' => 403]);
     }
 
-    $items = [];
+    return rest_ensure_response([
+        'success' => true,
+        'order'   => bw_build_order_payload($order),
+    ]);
+}
 
-    foreach ($order->get_items() as $item) {
 
-        $product   = $item->get_product();
-        $thumbnail = null;
+/**
+ * Public invoice endpoint — authorized by the order's own order_key
+ * (same mechanism WooCommerce's native order-received page uses), so a
+ * guest who just checked out can view their invoice without an account.
+ */
+function bw_handle_get_invoice($request) {
 
-        if ($product) {
-            $image_id = $product->get_image_id();
-            if ($image_id) {
-                $thumbnail = wp_get_attachment_image_url($image_id, 'thumbnail');
-            }
-        }
+    $order_id = (int) $request->get_param('id');
+    $key      = (string) $request->get_param('key');
+    $order    = wc_get_order($order_id);
 
-        $items[] = [
-            'name'      => $item->get_name(),
-            'quantity'  => $item->get_quantity(),
-            'total'     => $item->get_total(),
-            'thumbnail' => $thumbnail,
-        ];
+    if (!$order) {
+        return new WP_Error('order_not_found', 'Order not found.', ['status' => 404]);
+    }
+
+    if (!$key || !hash_equals($order->get_order_key(), $key)) {
+        return new WP_Error('forbidden', 'Invalid invoice link.', ['status' => 403]);
     }
 
     return rest_ensure_response([
         'success' => true,
-        'order'   => [
-            'id'               => $order->get_id(),
-            'order_number'     => $order->get_order_number(),
-            'date'             => $order->get_date_created()->date('c'),
-            'status'           => $order->get_status(),
-            'currency'         => $order->get_currency(),
-            'total'            => $order->get_total(),
-            'subtotal'         => $order->get_subtotal(),
-            'shipping_total'   => $order->get_shipping_total(),
-            'tax_total'        => $order->get_total_tax(),
-            'payment_method'   => $order->get_payment_method_title(),
-            'shipping_address' => $order->get_formatted_shipping_address() ?: $order->get_formatted_billing_address(),
-            'billing_address'  => $order->get_formatted_billing_address(),
-            'customer_note'    => $order->get_customer_note(),
-            'items'            => $items,
-        ],
+        'order'   => bw_build_order_payload($order),
     ]);
 }
 
@@ -468,6 +547,12 @@ add_action('rest_api_init', function () {
     register_rest_route('custom/v1', '/orders/(?P<id>\d+)', [
         'methods'             => 'GET',
         'callback'            => 'bw_handle_get_order',
+        'permission_callback' => '__return_true',
+    ]);
+
+    register_rest_route('custom/v1', '/invoice/(?P<id>\d+)', [
+        'methods'             => 'GET',
+        'callback'            => 'bw_handle_get_invoice',
         'permission_callback' => '__return_true',
     ]);
 

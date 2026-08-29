@@ -9,6 +9,7 @@ import { useAuth } from "@/app/components/account/AuthProvider";
 type OrderDetail = {
   id: number;
   order_number: string;
+  order_key: string;
   date: string;
   status: string;
   currency: string;
@@ -16,6 +17,7 @@ type OrderDetail = {
   subtotal: string;
   shipping_total: string;
   tax_total: string;
+  tax_lines: { label: string; amount: string }[];
   payment_method: string;
   shipping_address: string;
   billing_address: string;
@@ -75,9 +77,17 @@ export default function OrderDetailPage() {
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </Link>
-          <h1 className="font-display text-3xl italic tracking-tight text-ink md:text-4xl">
+          <h1 className="flex-1 font-display text-3xl italic tracking-tight text-ink md:text-4xl">
             {order ? `Order #${order.order_number}` : "Order Details"}
           </h1>
+          {order && (
+            <Link
+              href={`/invoice/${order.id}?key=${order.order_key}`}
+              className="rounded-full border border-line px-4 py-2 text-xs font-medium text-ink-soft transition hover:border-purple-300 hover:text-purple-700"
+            >
+              View Invoice
+            </Link>
+          )}
         </div>
 
         {error && (
@@ -124,12 +134,19 @@ export default function OrderDetailPage() {
                     <span className="text-ink">{order.currency} {Number(order.shipping_total).toLocaleString("en-PK")}</span>
                   </div>
                 )}
-                {Number(order.tax_total) > 0 && (
-                  <div className="flex items-center justify-between text-ink-soft">
-                    <span>Tax</span>
-                    <span className="text-ink">{order.currency} {Number(order.tax_total).toLocaleString("en-PK")}</span>
-                  </div>
-                )}
+                {order.tax_lines?.length > 0
+                  ? order.tax_lines.map((tax, i) => (
+                      <div key={i} className="flex items-center justify-between text-ink-soft">
+                        <span>{tax.label}</span>
+                        <span className="text-ink">{order.currency} {Number(tax.amount).toLocaleString("en-PK")}</span>
+                      </div>
+                    ))
+                  : Number(order.tax_total) > 0 && (
+                      <div className="flex items-center justify-between text-ink-soft">
+                        <span>Tax</span>
+                        <span className="text-ink">{order.currency} {Number(order.tax_total).toLocaleString("en-PK")}</span>
+                      </div>
+                    )}
                 <div className="flex items-center justify-between border-t border-line pt-2">
                   <span className="font-medium text-ink">Total</span>
                   <span className="font-display text-lg italic text-purple-700">

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/app/components/cart/CartProvider";
+import FreeShippingProgress from "@/app/components/FreeShippingProgress";
 
 function formatMoney(amount: string | number | undefined, minorUnit: number, prefix = "") {
   if (amount === undefined) return "";
@@ -37,11 +38,22 @@ const emptyAddress: ContactAddress = {
   phone: "",
 };
 
+type BankAccount = {
+  account_name: string;
+  account_number: string;
+  bank_name: string;
+  sort_code: string;
+  iban: string;
+  bic: string;
+};
+
 type PaymentMethod = {
   id: "cod" | "bacs";
   title: string;
   description: string;
   fee: number;
+  instructions?: string;
+  accounts?: BankAccount[];
 };
 
 const FALLBACK_METHODS: PaymentMethod[] = [
@@ -195,8 +207,6 @@ export default function CheckoutPage() {
     }
   }
 
-  const wpUrl = process.env.NEXT_PUBLIC_WP_URL;
-
   if (orderResult && orderSnapshot) {
     const snapTotals = orderSnapshot.totals;
     const snapMinorUnit = snapTotals?.currency_minor_unit ?? 2;
@@ -273,15 +283,13 @@ export default function CheckoutPage() {
             <Link href="/shop" className="rounded-full bg-purple-600 px-8 py-4 text-sm font-medium text-white transition hover:bg-purple-700">
               Continue Shopping
             </Link>
-            {wpUrl && orderResult.order_id && orderResult.order_key && (
-              <a
-                href={`${wpUrl}/checkout/order-received/${orderResult.order_id}/?key=${orderResult.order_key}`}
-                target="_blank"
-                rel="noopener noreferrer"
+            {orderResult.order_id && orderResult.order_key && (
+              <Link
+                href={`/invoice/${orderResult.order_id}?key=${orderResult.order_key}`}
                 className="rounded-full border border-line px-8 py-3.5 text-sm font-medium text-ink-soft transition hover:border-purple-300 hover:text-purple-700"
               >
                 View Full Invoice
-              </a>
+              </Link>
             )}
           </div>
         </section>
@@ -311,6 +319,12 @@ export default function CheckoutPage() {
             <Link href="/shop" className="mt-6 inline-block rounded-full bg-purple-600 px-7 py-3 text-sm font-medium text-white">
               Start Shopping
             </Link>
+          </div>
+        )}
+
+        {!loading && items.length > 0 && (
+          <div className="mt-6">
+            <FreeShippingProgress />
           </div>
         )}
 
@@ -438,6 +452,35 @@ export default function CheckoutPage() {
                       ))}
                     </div>
 
+                    {paymentMethod === "bacs" && (() => {
+                      const bacs = paymentMethods.find((m) => m.id === "bacs");
+                      if (!bacs) return null;
+                      return (
+                        <div className="mt-4 space-y-4 rounded-2xl border border-line bg-purple-50/40 p-4">
+                          {bacs.description && (
+                            <p className="text-sm text-ink-soft">{bacs.description}</p>
+                          )}
+                          {bacs.instructions && (
+                            <p className="text-sm text-ink-soft">{bacs.instructions}</p>
+                          )}
+                          {bacs.accounts && bacs.accounts.length > 0 && (
+                            <div className="space-y-3">
+                              {bacs.accounts.map((acc, i) => (
+                                <div key={i} className="rounded-xl bg-white p-3 text-sm">
+                                  {acc.bank_name && <p className="font-medium text-ink">{acc.bank_name}</p>}
+                                  {acc.account_name && <p className="text-ink-soft">Account Name: {acc.account_name}</p>}
+                                  {acc.account_number && <p className="text-ink-soft">Account Number: {acc.account_number}</p>}
+                                  {acc.iban && <p className="text-ink-soft">IBAN: {acc.iban}</p>}
+                                  {acc.sort_code && <p className="text-ink-soft">Sort Code: {acc.sort_code}</p>}
+                                  {acc.bic && <p className="text-ink-soft">BIC/SWIFT: {acc.bic}</p>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
                     <div className="mt-5">
                       <label className="mb-2 block text-xs font-medium text-ink-soft">Order note (optional)</label>
                       <textarea
@@ -499,12 +542,19 @@ export default function CheckoutPage() {
                     </span>
                   </div>
                 )}
-                {Number(totals?.total_tax) > 0 && (
-                  <div className="flex items-center justify-between text-ink-soft">
-                    <span>Tax</span>
-                    <span className="text-ink">{formatMoney(totals?.total_tax, minorUnit, prefix)}</span>
-                  </div>
-                )}
+                {(totals?.tax_lines ?? []).length > 0
+                  ? (totals.tax_lines as any[]).map((line: any) => (
+                      <div key={line.name} className="flex items-center justify-between text-ink-soft">
+                        <span>{line.name}</span>
+                        <span className="text-ink">{formatMoney(line.price, minorUnit, prefix)}</span>
+                      </div>
+                    ))
+                  : Number(totals?.total_tax) > 0 && (
+                      <div className="flex items-center justify-between text-ink-soft">
+                        <span>Tax</span>
+                        <span className="text-ink">{formatMoney(totals?.total_tax, minorUnit, prefix)}</span>
+                      </div>
+                    )}
                 {step === 2 && selectedPaymentFee > 0 && (
                   <div className="flex items-center justify-between text-ink-soft">
                     <span>{paymentMethods.find((m) => m.id === paymentMethod)?.title || "Payment"} Fee</span>

@@ -38,9 +38,9 @@ export default async function Home() {
           </div>
 
           {bannerProducts.length > 0 && (
-            <div className="relative mx-auto grid h-[380px] w-full max-w-md grid-cols-2 gap-4 md:h-[440px]">
+            <div className="relative mx-auto h-[420px] w-full max-w-md md:h-[480px]">
               {bannerProducts[0] && (
-                <div className="relative col-span-2 overflow-hidden rounded-[2rem] bg-purple-50 shadow-sm">
+                <div className="absolute inset-0 -rotate-2 overflow-hidden rounded-[2rem] bg-purple-50 shadow-xl shadow-purple-900/10 transition duration-500 hover:rotate-0">
                   <Image
                     src={bannerProducts[0].images?.[0]?.src}
                     alt={bannerProducts[0].images?.[0]?.alt || bannerProducts[0].name}
@@ -49,33 +49,34 @@ export default async function Home() {
                     className="object-cover"
                     priority
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-ink/20 via-transparent to-transparent" />
                 </div>
               )}
+
               {bannerProducts[1] && (
-                <div className="relative overflow-hidden rounded-[1.5rem] bg-blush shadow-sm">
+                <div className="absolute -bottom-6 -right-4 h-40 w-40 rotate-6 overflow-hidden rounded-3xl border-4 border-white bg-blush shadow-xl transition duration-500 hover:rotate-0 sm:h-48 sm:w-48">
                   <Image
                     src={bannerProducts[1].images?.[0]?.src}
                     alt={bannerProducts[1].images?.[0]?.alt || bannerProducts[1].name}
                     fill
-                    sizes="(max-width: 768px) 45vw, 200px"
-                    className="object-cover"
-                  />
-                </div>
-              )}
-              {bannerProducts[2] && (
-                <div className="relative overflow-hidden rounded-[1.5rem] bg-purple-100 shadow-sm">
-                  <Image
-                    src={bannerProducts[2].images?.[0]?.src}
-                    alt={bannerProducts[2].images?.[0]?.alt || bannerProducts[2].name}
-                    fill
-                    sizes="(max-width: 768px) 45vw, 200px"
+                    sizes="200px"
                     className="object-cover"
                   />
                 </div>
               )}
 
-              <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white px-5 py-2.5 text-xs font-medium text-ink shadow-lg shadow-purple-900/10 md:left-4 md:translate-x-0">
-                100% Authentic Korean Skincare
+              <div className="absolute -left-4 top-6 flex items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-lg shadow-purple-900/10 sm:-left-8">
+                <div className="flex text-amber-400">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <svg key={i} width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10 1l2.6 5.9 6.4.6-4.8 4.3 1.4 6.2L10 15l-5.6 3 1.4-6.2L1 8.5l6.4-.6z" />
+                    </svg>
+                  ))}
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-semibold text-ink">Loved by shoppers</p>
+                  <p className="text-[10px] text-ink-soft">100% Authentic Korean Skincare</p>
+                </div>
               </div>
             </div>
           )}

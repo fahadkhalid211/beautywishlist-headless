@@ -11,7 +11,7 @@ export default function NavMenu({ items }: { items: MenuItem[] }) {
   }
 
   return (
-    <div className="mx-auto flex max-w-7xl items-center gap-8 px-6 py-3 text-xs font-medium uppercase tracking-wide text-ink-soft">
+    <div className="mx-auto flex max-w-7xl items-center justify-center gap-8 px-6 py-3 text-xs font-medium uppercase tracking-wide text-ink-soft">
       {items.map((item) => (
         <div key={item.id} className="group relative">
           <Link href={toPath(item.url)} className="transition hover:text-purple-700">
