@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# stray build-time config artifacts (some host pipelines generate these)
+*.next.config.ts
+*.next.config.js
