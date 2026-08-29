@@ -122,19 +122,29 @@ export default function InvoicePage() {
             </div>
           </div>
 
-          <div className="grid gap-6 border-b border-line py-6 sm:grid-cols-2">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Billed To</p>
+          {order.billing_address.trim() === order.shipping_address.trim() ? (
+            <div className="border-b border-line py-6">
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Delivery Address</p>
               <div className="mt-2 text-sm leading-6 text-ink" dangerouslySetInnerHTML={{ __html: order.billing_address }} />
               {order.billing_email && <p className="mt-1 text-sm text-ink-soft">{order.billing_email}</p>}
               {order.billing_phone && <p className="text-sm text-ink-soft">{order.billing_phone}</p>}
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Shipped To</p>
-              <div className="mt-2 text-sm leading-6 text-ink" dangerouslySetInnerHTML={{ __html: order.shipping_address }} />
               {order.shipping_method && <p className="mt-1 text-sm text-ink-soft">Method: {order.shipping_method}</p>}
             </div>
-          </div>
+          ) : (
+            <div className="grid gap-6 border-b border-line py-6 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Billed To</p>
+                <div className="mt-2 text-sm leading-6 text-ink" dangerouslySetInnerHTML={{ __html: order.billing_address }} />
+                {order.billing_email && <p className="mt-1 text-sm text-ink-soft">{order.billing_email}</p>}
+                {order.billing_phone && <p className="text-sm text-ink-soft">{order.billing_phone}</p>}
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Shipped To</p>
+                <div className="mt-2 text-sm leading-6 text-ink" dangerouslySetInnerHTML={{ __html: order.shipping_address }} />
+                {order.shipping_method && <p className="mt-1 text-sm text-ink-soft">Method: {order.shipping_method}</p>}
+              </div>
+            </div>
+          )}
 
           <div className="py-6">
             <div className="overflow-x-auto">

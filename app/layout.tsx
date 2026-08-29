@@ -7,6 +7,7 @@ import CartDrawer from "./components/cart/CartDrawer";
 import { AuthProvider } from "./components/account/AuthProvider";
 import { WishlistProvider } from "./components/wishlist/WishlistProvider";
 import Footer from "./components/Footer";
+import WhatsAppWidget from "./components/WhatsAppWidget";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -76,6 +77,7 @@ export default function RootLayout({
               {children}
               <Footer />
               <CartDrawer />
+              <WhatsAppWidget />
             </CartProvider>
           </WishlistProvider>
         </AuthProvider>

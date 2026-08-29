@@ -14,8 +14,9 @@ export default function NavMenu({ items }: { items: MenuItem[] }) {
     <div className="mx-auto flex max-w-7xl items-center justify-center gap-8 px-6 py-3 text-xs font-medium uppercase tracking-wide text-ink-soft">
       {items.map((item) => (
         <div key={item.id} className="group relative">
-          <Link href={toPath(item.url)} className="transition hover:text-purple-700">
+          <Link href={toPath(item.url)} className="group/link relative inline-block pb-1 transition hover:text-purple-700">
             {item.title}
+            <span className="absolute inset-x-0 -bottom-0.5 h-px origin-center scale-x-0 bg-purple-700 transition-transform duration-300 group-hover/link:scale-x-100" />
           </Link>
 
           {item.children.length > 0 && (

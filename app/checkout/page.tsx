@@ -80,6 +80,7 @@ export default function CheckoutPage() {
     paymentMethod: string;
     paymentMethodTitle: string;
     shippingRateName?: string;
+    codTax: number;
   } | null>(null);
 
   const loading = cart === null;
@@ -92,7 +93,9 @@ export default function CheckoutPage() {
   const rates: any[] = ratePackage?.shipping_rates ?? [];
   const selectedRate = rates.find((r) => r.selected);
   const canPlaceOrder = step === 2 && (!needsShipping || rates.length === 0 || !!selectedRate);
-  const displayTotal = Number(totals?.total_price ?? 0);
+  const subtotalValue = totals ? Number(totals.total_items) / Math.pow(10, minorUnit) : 0;
+  const codTaxPreview = step === 2 && paymentMethod === "cod" ? Math.round(subtotalValue * 0.04 * 100) / 100 : 0;
+  const displayTotal = Number(totals?.total_price ?? 0) + codTaxPreview * Math.pow(10, minorUnit);
 
   useEffect(() => {
     fetch("/api/payment-methods")
@@ -200,7 +203,7 @@ export default function CheckoutPage() {
         address,
         paymentMethod,
         paymentMethodTitle: paymentMethods.find((m) => m.id === paymentMethod)?.title || paymentMethod,
-        shippingRateName: selectedRate?.name,
+        codTax: codTaxPreview,
       });
       setOrderResult(data);
       clearCart();
@@ -241,13 +244,10 @@ export default function CheckoutPage() {
               <div className="mt-3 space-y-1 text-sm text-ink-soft">
                 <p className="text-ink">{orderSnapshot.address.first_name} {orderSnapshot.address.last_name}</p>
                 <p>{orderSnapshot.address.address_1}{orderSnapshot.address.address_2 ? `, ${orderSnapshot.address.address_2}` : ""}</p>
-                <p>{orderSnapshot.address.city}, {orderSnapshot.address.state} {orderSnapshot.address.postcode}</p>
+                <p>{orderSnapshot.address.city}, {orderSnapshot.address.state}</p>
                 <p>{orderSnapshot.address.email} &middot; {orderSnapshot.address.phone}</p>
-                {orderSnapshot.shippingRateName && (
-                  <p className="pt-2 text-ink">Shipping: {orderSnapshot.shippingRateName}</p>
-                )}
-                <p className="text-ink">
-                  Payment: {orderSnapshot.paymentMethodTitle}
+                <p className="pt-2 text-ink">
+                  Payment Method: {orderSnapshot.paymentMethodTitle}
                 </p>
               </div>
             </div>
@@ -272,10 +272,20 @@ export default function CheckoutPage() {
                   );
                 })}
               </div>
+              {orderSnapshot.codTax > 0 && (
+                <div className="mt-3 flex items-center justify-between border-t border-line pt-3 text-sm text-ink-soft">
+                  <span>Tax (4%)</span>
+                  <span className="text-ink">{formatMoney(orderSnapshot.codTax, 0, snapPrefix)}</span>
+                </div>
+              )}
               <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
                 <span className="text-sm font-medium text-ink">Total</span>
                 <span className="font-display text-xl italic text-purple-700">
-                  {formatMoney(snapTotals?.total_price, snapMinorUnit, snapPrefix)}
+                  {formatMoney(
+                    Number(snapTotals?.total_price ?? 0) + orderSnapshot.codTax * Math.pow(10, snapMinorUnit),
+                    snapMinorUnit,
+                    snapPrefix
+                  )}
                 </span>
               </div>
             </div>
@@ -353,7 +363,6 @@ export default function CheckoutPage() {
                       <Field label="City" value={address.city} onChange={(v) => updateAddress("city", v)} required />
                       <Field label="Province / State" value={address.state} onChange={(v) => updateAddress("state", v)} required />
                     </div>
-                    <Field label="Postcode" value={address.postcode} onChange={(v) => updateAddress("postcode", v)} required />
 
                     <button
                       type="submit"
@@ -378,7 +387,7 @@ export default function CheckoutPage() {
                     <div className="mt-4 text-sm text-ink-soft">
                       <p className="text-ink">{address.first_name} {address.last_name}</p>
                       <p>{address.address_1}{address.address_2 ? `, ${address.address_2}` : ""}</p>
-                      <p>{address.city}, {address.state} {address.postcode}</p>
+                      <p>{address.city}, {address.state}</p>
                       <p>{address.email} &middot; {address.phone}</p>
                     </div>
                   </div>
@@ -488,7 +497,7 @@ export default function CheckoutPage() {
                 </div>
                 {needsShipping && (
                   <div className="flex items-center justify-between text-ink-soft">
-                    <span>Shipping{selectedRate ? ` (${decodeEntities(selectedRate.name)})` : ""}</span>
+                    <span>Shipping</span>
                     <span className="text-ink">
                       {step < 2 || !selectedRate
                         ? "—"
@@ -511,6 +520,20 @@ export default function CheckoutPage() {
                         <span className="text-ink">{formatMoney(totals?.total_tax, minorUnit, prefix)}</span>
                       </div>
                     )}
+                {step === 2 && paymentMethod === "cod" && codTaxPreview > 0 && (
+                  <div className="flex items-center justify-between text-ink-soft">
+                    <span>Tax (4%)</span>
+                    <span className="text-ink">{formatMoney(codTaxPreview, 0, prefix)}</span>
+                  </div>
+                )}
+                {step === 2 && (
+                  <div className="flex items-center justify-between border-t border-line pt-3 text-ink-soft">
+                    <span>Payment Method</span>
+                    <span className="text-ink">
+                      {paymentMethods.find((m) => m.id === paymentMethod)?.title || (paymentMethod === "cod" ? "Cash on Delivery" : "Direct Bank Transfer")}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="mt-5 flex items-center justify-between border-t border-line pt-5">
