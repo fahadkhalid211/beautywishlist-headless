@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getProducts, getCategories, searchProducts } from "@/lib/woocommerce";
+import { getProducts, getCategories, searchProducts, getFeaturedProducts } from "@/lib/woocommerce";
 import ProductCard from "@/app/components/ProductCard";
 import CategoryCircles from "@/app/components/CategoryCircles";
 import BrandCarousel from "@/app/components/BrandCarousel";
@@ -9,11 +9,12 @@ import BrandSpotlightCards from "@/app/components/BrandSpotlightCards";
 import JourneyBanner from "@/app/components/JourneyBanner";
 
 export default async function Home() {
-  const [products, categories, saleResult, bestSellersResult] = await Promise.all([
+  const [products, categories, saleResult, bestSellersResult, featuredProducts] = await Promise.all([
     getProducts(),
     getCategories(),
     searchProducts({ onSale: true, perPage: 12 }),
     searchProducts({ orderby: "popularity", order: "desc", perPage: 12 }),
+    getFeaturedProducts(8),
   ]);
 
   const topCategories = categories
@@ -24,8 +25,14 @@ export default async function Home() {
   const allBrandCategories = categories.filter((c: any) => c.count > 0);
   const saleProducts = saleResult.items;
   const bestSellers = bestSellersResult.items;
-  const bannerProducts = products.slice(0, 3);
-  const journeyBackdrop = bestSellers[0]?.images?.[0] || products[0]?.images?.[0];
+
+  // Hero collage + banner backdrop pull from products marked "Feature this
+  // product" in WooCommerce, so store owners can change these images by
+  // marking different products as featured, no code changes needed. Falls
+  // back to recent products if nothing is marked featured yet.
+  const heroSource = featuredProducts.length > 0 ? featuredProducts : products;
+  const bannerProducts = heroSource.slice(0, 3);
+  const journeyBackdrop = heroSource[3]?.images?.[0] || heroSource[0]?.images?.[0] || products[0]?.images?.[0];
 
   return (
     <main className="min-h-screen bg-bg">

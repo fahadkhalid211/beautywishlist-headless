@@ -49,7 +49,3 @@ body {
   opacity: 0.55;
   pointer-events: none;
 }
-@media (hover: none) {
-  .group .group-hover\:translate-y-0 { transform: translateY(0); }
-  .group .group-hover\:opacity-100 { opacity: 1; }
-}

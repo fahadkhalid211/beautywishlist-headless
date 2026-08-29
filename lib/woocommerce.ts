@@ -47,6 +47,18 @@ export async function getProducts(
   );
 }
 
+/**
+ * Products marked "Feature this product" in WooCommerce (Product edit
+ * screen → Product data → General/Advanced). Gives store owners a direct,
+ * code-free lever to control which products appear in homepage hero/banner
+ * spots, instead of relying on default sort order.
+ */
+export async function getFeaturedProducts(perPage = 8) {
+  return request<any[]>(
+    `/products?featured=true&per_page=${perPage}`
+  );
+}
+
 export async function getProduct(slug: string) {
   const products = await request<any[]>(
     `/products?slug=${encodeURIComponent(slug)}`
