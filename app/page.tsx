@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getProducts, getCategories, searchProducts, getFeaturedProducts } from "@/lib/woocommerce";
+import { getProducts, getCategories, searchProducts, getFeaturedProducts, getHomepageImages } from "@/lib/woocommerce";
 import ProductCard from "@/app/components/ProductCard";
 import CategoryCircles from "@/app/components/CategoryCircles";
 import BrandCarousel from "@/app/components/BrandCarousel";
@@ -9,12 +9,13 @@ import BrandSpotlightCards from "@/app/components/BrandSpotlightCards";
 import JourneyBanner from "@/app/components/JourneyBanner";
 
 export default async function Home() {
-  const [products, categories, saleResult, bestSellersResult, featuredProducts] = await Promise.all([
+  const [products, categories, saleResult, bestSellersResult, featuredProducts, homepageImages] = await Promise.all([
     getProducts(),
     getCategories(),
     searchProducts({ onSale: true, perPage: 12 }),
     searchProducts({ orderby: "popularity", order: "desc", perPage: 12 }),
     getFeaturedProducts(8),
+    getHomepageImages(),
   ]);
 
   const topCategories = categories
@@ -26,13 +27,28 @@ export default async function Home() {
   const saleProducts = saleResult.items;
   const bestSellers = bestSellersResult.items;
 
-  // Hero collage + banner backdrop pull from products marked "Feature this
-  // product" in WooCommerce, so store owners can change these images by
-  // marking different products as featured, no code changes needed. Falls
-  // back to recent products if nothing is marked featured yet.
+  // Hero collage + banner backdrop: admin-set images (Settings → Homepage
+  // Images in WordPress) take priority, then featured products, then recent
+  // products as a last resort.
   const heroSource = featuredProducts.length > 0 ? featuredProducts : products;
-  const bannerProducts = heroSource.slice(0, 3);
-  const journeyBackdrop = heroSource[3]?.images?.[0] || heroSource[0]?.images?.[0] || products[0]?.images?.[0];
+
+  const heroImage1 = homepageImages?.hero_image_1
+    ? { src: homepageImages.hero_image_1, alt: "Hero banner" }
+    : heroSource[0]?.images?.[0]
+    ? { src: heroSource[0].images[0].src, alt: heroSource[0].images[0].alt || heroSource[0].name }
+    : null;
+
+  const heroImage2 = homepageImages?.hero_image_2
+    ? { src: homepageImages.hero_image_2, alt: "Hero banner" }
+    : heroSource[1]?.images?.[0]
+    ? { src: heroSource[1].images[0].src, alt: heroSource[1].images[0].alt || heroSource[1].name }
+    : null;
+
+  const journeyBackdrop = homepageImages?.banner_image
+    ? { src: homepageImages.banner_image, alt: "Beauty Wishlist" }
+    : heroSource[3]?.images?.[0] || heroSource[0]?.images?.[0] || products[0]?.images?.[0];
+
+  const newInProducts = products.slice(0, 8);
 
   return (
     <main className="min-h-screen bg-bg">
@@ -54,31 +70,23 @@ export default async function Home() {
             </Link>
           </div>
 
-          {bannerProducts.length > 0 && (
+          {heroImage1 && (
             <div className="relative mx-auto h-[420px] w-full max-w-md md:h-[480px]">
-              {bannerProducts[0] && (
-                <div className="absolute inset-0 -rotate-2 overflow-hidden rounded-[2rem] bg-purple-50 shadow-xl shadow-purple-900/10 transition duration-500 hover:rotate-0">
-                  <Image
-                    src={bannerProducts[0].images?.[0]?.src}
-                    alt={bannerProducts[0].images?.[0]?.alt || bannerProducts[0].name}
-                    fill
-                    sizes="(max-width: 768px) 90vw, 420px"
-                    className="object-cover"
-                    priority
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-ink/20 via-transparent to-transparent" />
-                </div>
-              )}
+              <div className="absolute inset-0 -rotate-2 overflow-hidden rounded-[2rem] bg-purple-50 shadow-xl shadow-purple-900/10 transition duration-500 hover:rotate-0">
+                <Image
+                  src={heroImage1.src}
+                  alt={heroImage1.alt}
+                  fill
+                  sizes="(max-width: 768px) 90vw, 420px"
+                  className="object-cover"
+                  priority
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-ink/20 via-transparent to-transparent" />
+              </div>
 
-              {bannerProducts[1] && (
+              {heroImage2 && (
                 <div className="absolute -bottom-6 -right-4 h-40 w-40 rotate-6 overflow-hidden rounded-3xl border-4 border-white bg-blush shadow-xl transition duration-500 hover:rotate-0 sm:h-48 sm:w-48">
-                  <Image
-                    src={bannerProducts[1].images?.[0]?.src}
-                    alt={bannerProducts[1].images?.[0]?.alt || bannerProducts[1].name}
-                    fill
-                    sizes="200px"
-                    className="object-cover"
-                  />
+                  <Image src={heroImage2.src} alt={heroImage2.alt} fill sizes="200px" className="object-cover" />
                 </div>
               )}
 
@@ -125,13 +133,18 @@ export default async function Home() {
       <section className="mx-auto max-w-7xl px-6 pb-24">
         <div className="mb-10 flex items-end justify-between">
           <h2 className="font-display text-3xl italic text-ink">New In</h2>
-          <Link href="/shop" className="text-sm text-purple-700 hover:underline">View all</Link>
         </div>
 
         <div className="grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-4">
-          {products.map((product: any) => (
+          {newInProducts.map((product: any) => (
             <ProductCard key={product.id} product={product} />
           ))}
+        </div>
+
+        <div className="mt-12 text-center">
+          <Link href="/shop" className="inline-block rounded-full border border-line px-8 py-4 text-sm font-medium text-ink-soft transition hover:border-purple-300 hover:text-purple-700">
+            View All
+          </Link>
         </div>
       </section>
     </main>

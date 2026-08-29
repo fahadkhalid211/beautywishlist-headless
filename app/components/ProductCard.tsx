@@ -55,7 +55,7 @@ export default function ProductCard({ product }: { product: any }) {
             />
           </div>
 
-          <div className="absolute inset-x-3 bottom-3 opacity-100 transition duration-300 md:translate-y-2 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
+          <div className="absolute inset-x-3 bottom-3 hidden transition duration-300 md:block md:translate-y-2 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
             <AddToCart
               productId={product.id}
               inStock={product.is_in_stock}
@@ -82,6 +82,15 @@ export default function ProductCard({ product }: { product: any }) {
               <span className="text-sm text-ink-soft line-through">{prefix}{regular.toLocaleString("en-PK")}</span>
             )}
             <span className="text-sm font-semibold text-purple-700">{prefix}{price.toLocaleString("en-PK")}</span>
+          </div>
+
+          <div className="mt-3 md:hidden">
+            <AddToCart
+              productId={product.id}
+              inStock={product.is_in_stock}
+              maxQuantity={product.manage_stock && typeof product.stock_quantity === "number" ? product.stock_quantity : undefined}
+              compact
+            />
           </div>
         </div>
       </Link>

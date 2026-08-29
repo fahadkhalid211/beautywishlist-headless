@@ -1,14 +1,12 @@
 <?php
 /**
  * Beauty Wishlist
- * Dynamic Delivery Fee (by payment method) + Headless Payment Methods API
+ * Headless Payment Methods API
  *
- * Adds a "Delivery Fee" setting field to Cash on Delivery and Bank Transfer
- * gateway settings screens (WooCommerce → Settings → Payments → [gateway]).
- * This fee represents the full delivery charge for that payment method
- * (e.g. 300 for COD, 200 for Bank Transfer) — the customer no longer picks
- * a separate shipping method. It's automatically waived (0) once the cart
- * subtotal reaches the store's configured Free Shipping minimum amount.
+ * Exposes payment method info (description, bank account details) and the
+ * store's Free Shipping threshold. Actual delivery cost now comes entirely
+ * from real WooCommerce shipping rates, auto-matched by the frontend based
+ * on the selected payment method — no separate fee mechanism.
  *
  * API:
  * https://new.beautywishlistbyhs.shop/wp-json/custom/v1/payment-methods
@@ -20,46 +18,11 @@ if (!defined('ABSPATH')) {
 
 
 /**
- * Add "Delivery Fee" field to COD gateway settings.
- */
-add_filter('woocommerce_settings_api_form_fields_cod', function ($fields) {
-
-    $fields['extra_fee'] = [
-        'title'       => 'Delivery Fee (PKR)',
-        'type'        => 'number',
-        'description' => 'Delivery charge for Cash on Delivery orders. Automatically waived once the cart reaches your Free Shipping minimum amount.',
-        'default'     => '0',
-        'desc_tip'    => true,
-    ];
-
-    return $fields;
-});
-
-
-/**
- * Add "Delivery Fee" field to Bank Transfer (BACS) gateway settings.
- */
-add_filter('woocommerce_settings_api_form_fields_bacs', function ($fields) {
-
-    $fields['extra_fee'] = [
-        'title'       => 'Delivery Fee (PKR)',
-        'type'        => 'number',
-        'description' => 'Delivery charge for Direct Bank Transfer orders. Automatically waived once the cart reaches your Free Shipping minimum amount.',
-        'default'     => '0',
-        'desc_tip'    => true,
-    ];
-
-    return $fields;
-});
-
-
-/**
  * Free Shipping Threshold — shared helper.
  *
  * Scans all shipping zones for an enabled "Free Shipping" method that
  * requires a minimum order amount, and returns the lowest such threshold
- * found. Used both by the public API (for the frontend progress widget)
- * and by the delivery fee calculation below, so both always agree.
+ * found. Used by the frontend's free-shipping progress widget.
  */
 function bw_calculate_free_shipping_threshold() {
 
@@ -91,59 +54,7 @@ function bw_calculate_free_shipping_threshold() {
 
 
 /**
- * Apply the delivery fee to real orders placed through the Store API
- * (headless checkout), waived if the order subtotal meets the free
- * shipping threshold. This is the official Store API extensibility hook
- * for modifying an order based on the incoming checkout request.
- */
-add_action('woocommerce_store_api_checkout_update_order_from_request', function ($order, $request) {
-
-    $payment_method = $request->get_param('payment_method');
-
-    $fee   = 0;
-    $label = '';
-
-    if ($payment_method === 'cod') {
-
-        $settings = get_option('woocommerce_cod_settings');
-        $fee      = isset($settings['extra_fee']) ? floatval($settings['extra_fee']) : 0;
-        $label    = 'Delivery Fee (Cash on Delivery)';
-
-    } elseif ($payment_method === 'bacs') {
-
-        $settings = get_option('woocommerce_bacs_settings');
-        $fee      = isset($settings['extra_fee']) ? floatval($settings['extra_fee']) : 0;
-        $label    = 'Delivery Fee (Bank Transfer)';
-    }
-
-    $threshold = bw_calculate_free_shipping_threshold();
-    $subtotal  = (float) $order->get_subtotal();
-
-    if ($threshold !== null && $subtotal >= $threshold) {
-        $fee = 0;
-    }
-
-    if ($fee > 0) {
-
-        $item = new WC_Order_Item_Fee();
-        $item->set_name($label);
-        $item->set_amount($fee);
-        $item->set_total($fee);
-        $item->set_tax_status('taxable');
-
-        $order->add_item($item);
-        $order->calculate_totals();
-    }
-
-}, 10, 2);
-
-
-/**
  * Register Payment Methods API.
- *
- * Returns the enabled COD / Bank Transfer gateways along with their
- * currently configured delivery fee, so the frontend never has to
- * hardcode amounts.
  */
 add_action('rest_api_init', function () {
 
@@ -185,13 +96,11 @@ function bw_get_payment_methods() {
 
         $gateway  = $gateways[$id];
         $settings = get_option('woocommerce_' . $id . '_settings', []);
-        $fee      = isset($settings['extra_fee']) ? floatval($settings['extra_fee']) : 0;
 
         $method = [
             'id'          => $id,
             'title'       => $gateway->get_title(),
             'description' => $gateway->get_description(),
-            'fee'         => $fee,
         ];
 
         if ($id === 'bacs') {

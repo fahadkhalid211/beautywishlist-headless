@@ -59,6 +59,23 @@ export async function getFeaturedProducts(perPage = 8) {
   );
 }
 
+/**
+ * Admin-configured homepage images (Settings → Homepage Images in
+ * WordPress). Returns null fields if nothing has been set yet.
+ */
+export async function getHomepageImages() {
+  const WP_URL = process.env.NEXT_PUBLIC_WP_URL!;
+  try {
+    const res = await fetch(`${WP_URL}/wp-json/custom/v1/homepage-images`, {
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function getProduct(slug: string) {
   const products = await request<any[]>(
     `/products?slug=${encodeURIComponent(slug)}`

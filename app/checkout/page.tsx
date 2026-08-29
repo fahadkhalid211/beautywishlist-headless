@@ -51,14 +51,13 @@ type PaymentMethod = {
   id: "cod" | "bacs";
   title: string;
   description: string;
-  fee: number;
   instructions?: string;
   accounts?: BankAccount[];
 };
 
 const FALLBACK_METHODS: PaymentMethod[] = [
-  { id: "cod", title: "Cash on Delivery", description: "", fee: 0 },
-  { id: "bacs", title: "Direct Bank Transfer", description: "", fee: 0 },
+  { id: "cod", title: "Cash on Delivery", description: "" },
+  { id: "bacs", title: "Direct Bank Transfer", description: "" },
 ];
 
 export default function CheckoutPage() {
@@ -81,8 +80,7 @@ export default function CheckoutPage() {
     address: ContactAddress;
     paymentMethod: string;
     paymentMethodTitle: string;
-    paymentFee: number;
-    freeShipping: boolean;
+    shippingRateName?: string;
   } | null>(null);
 
   const loading = cart === null;
@@ -97,8 +95,7 @@ export default function CheckoutPage() {
   const canPlaceOrder = step === 2 && (!needsShipping || rates.length === 0 || !!selectedRate);
   const subtotalValue = totals ? Number(totals.total_items) / Math.pow(10, minorUnit) : 0;
   const freeShippingReached = freeShippingThreshold !== null && subtotalValue >= freeShippingThreshold;
-  const selectedPaymentFee = step === 2 && !freeShippingReached ? paymentMethods.find((m) => m.id === paymentMethod)?.fee ?? 0 : 0;
-  const displayTotal = Number(totals?.total_price ?? 0) + selectedPaymentFee * Math.pow(10, minorUnit);
+  const displayTotal = Number(totals?.total_price ?? 0);
 
   useEffect(() => {
     fetch("/api/free-shipping-threshold")
@@ -172,12 +169,30 @@ export default function CheckoutPage() {
     }
   }
 
+  function pickBestRate(availableRates: any[], method: "cod" | "bacs", freeShipping: boolean) {
+    if (availableRates.length === 0) return null;
+
+    if (freeShipping) {
+      const free = availableRates.find((r) => r.method_id === "free_shipping" || /free/i.test(r.name));
+      if (free) return free;
+    }
+
+    const keywords = method === "cod" ? ["cod", "cash"] : ["bank", "transfer", "prepaid"];
+    const matched = availableRates.find((r) => keywords.some((k) => r.name.toLowerCase().includes(k)));
+    if (matched) return matched;
+
+    const nonFree = availableRates.find((r) => r.method_id !== "free_shipping" && !/free/i.test(r.name));
+    return nonFree || availableRates[0];
+  }
+
   useEffect(() => {
-    if (step === 2 && rates.length > 0 && !selectedRate) {
-      handleSelectRate(rates[0].rate_id);
+    if (step !== 2 || rates.length === 0) return;
+    const best = pickBestRate(rates, paymentMethod, freeShippingReached);
+    if (best && !best.selected) {
+      handleSelectRate(best.rate_id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, rates.length]);
+  }, [step, rates.length, paymentMethod, freeShippingReached]);
 
   async function handlePlaceOrder() {
     setError(null);
@@ -205,8 +220,7 @@ export default function CheckoutPage() {
         address,
         paymentMethod,
         paymentMethodTitle: paymentMethods.find((m) => m.id === paymentMethod)?.title || paymentMethod,
-        paymentFee: selectedPaymentFee,
-        freeShipping: freeShippingReached,
+        shippingRateName: selectedRate?.name,
       });
       setOrderResult(data);
       clearCart();
@@ -249,9 +263,9 @@ export default function CheckoutPage() {
                 <p>{orderSnapshot.address.address_1}{orderSnapshot.address.address_2 ? `, ${orderSnapshot.address.address_2}` : ""}</p>
                 <p>{orderSnapshot.address.city}, {orderSnapshot.address.state} {orderSnapshot.address.postcode}</p>
                 <p>{orderSnapshot.address.email} &middot; {orderSnapshot.address.phone}</p>
-                <p className="pt-2 text-ink">
-                  Shipping: {orderSnapshot.freeShipping ? "Free" : orderSnapshot.paymentFee > 0 ? formatMoney(orderSnapshot.paymentFee, 0, snapPrefix) : "Free"}
-                </p>
+                {orderSnapshot.shippingRateName && (
+                  <p className="pt-2 text-ink">Shipping: {orderSnapshot.shippingRateName}</p>
+                )}
                 <p className="text-ink">
                   Payment: {orderSnapshot.paymentMethodTitle}
                 </p>
@@ -280,11 +294,7 @@ export default function CheckoutPage() {
               <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
                 <span className="text-sm font-medium text-ink">Total</span>
                 <span className="font-display text-xl italic text-purple-700">
-                  {formatMoney(
-                    Number(snapTotals?.total_price ?? 0) + orderSnapshot.paymentFee * Math.pow(10, snapMinorUnit),
-                    snapMinorUnit,
-                    snapPrefix
-                  )}
+                  {formatMoney(snapTotals?.total_price, snapMinorUnit, snapPrefix)}
                 </span>
               </div>
             </div>
@@ -421,11 +431,6 @@ export default function CheckoutPage() {
                             />
                             <span className="text-ink">{method.title}</span>
                           </span>
-                          {method.fee > 0 && (
-                            <span className="text-xs text-ink-soft">
-                              {freeShippingReached ? "Free shipping applied" : `+${formatMoney(method.fee, 0, prefix)} delivery`}
-                            </span>
-                          )}
                         </label>
                       ))}
                     </div>
@@ -510,15 +515,13 @@ export default function CheckoutPage() {
                 </div>
                 {needsShipping && (
                   <div className="flex items-center justify-between text-ink-soft">
-                    <span>Shipping</span>
+                    <span>Shipping{selectedRate ? ` (${selectedRate.name})` : ""}</span>
                     <span className="text-ink">
-                      {step < 2
+                      {step < 2 || !selectedRate
                         ? "—"
-                        : freeShippingReached
+                        : Number(selectedRate.price) === 0
                         ? "Free"
-                        : selectedPaymentFee > 0
-                        ? formatMoney(selectedPaymentFee, 0, prefix)
-                        : "Free"}
+                        : formatMoney(selectedRate.price, minorUnit, prefix)}
                     </span>
                   </div>
                 )}
