@@ -23,22 +23,27 @@ const manrope = Manrope({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const WP_URL = process.env.NEXT_PUBLIC_WP_URL!;
-  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || WP_URL;
+  const WP_URL = process.env.NEXT_PUBLIC_WP_URL;
+  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || WP_URL || "";
   let siteIconUrl: string | undefined;
 
-  try {
-    const res = await fetch(`${WP_URL}/wp-json/`, { next: { revalidate: 3600 } });
-    if (res.ok) {
-      const data = await res.json();
-      siteIconUrl = data?.site_icon_url || undefined;
+  if (WP_URL) {
+    try {
+      const res = await fetch(`${WP_URL}/wp-json/`, {
+        next: { revalidate: 3600 },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        siteIconUrl = data?.site_icon_url || undefined;
+      }
+    } catch {
+      // fall back to Next.js's default favicon handling if this fails
     }
-  } catch {
-    // fall back to Next.js's default favicon handling if this fails
   }
 
   return {
-    metadataBase: new URL(SITE_URL),
+    metadataBase: SITE_URL ? new URL(SITE_URL) : undefined,
     title: {
       default: "Beauty Wishlist by HS",
       template: "%s | Beauty Wishlist by HS",
