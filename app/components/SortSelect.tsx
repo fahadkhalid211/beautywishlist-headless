@@ -24,6 +24,7 @@ export default function SortSelect() {
       className="rounded-xl border border-line bg-white px-4 py-2 text-sm outline-none focus:border-purple-500"
     >
       <option value="">Sort: Featured</option>
+      <option value="popularity">Popularity</option>
       <option value="newest">Newest</option>
       <option value="price-low">Price: Low to High</option>
       <option value="price-high">Price: High to Low</option>

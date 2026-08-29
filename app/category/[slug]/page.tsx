@@ -31,6 +31,7 @@ export default async function CategoryPage({
   if (query.sort === "price-high") { orderby = "price"; order = "desc"; }
   if (query.sort === "newest") { orderby = "date"; order = "desc"; }
   if (query.sort === "name") { orderby = "title"; order = "asc"; }
+  if (query.sort === "popularity") { orderby = "popularity"; order = "desc"; }
 
   const [{ items: products, total, totalPages }, categories] = await Promise.all([
     searchProducts({

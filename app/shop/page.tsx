@@ -20,6 +20,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   if (params.sort === "price-high") { orderby = "price"; order = "desc"; }
   if (params.sort === "newest") { orderby = "date"; order = "desc"; }
   if (params.sort === "name") { orderby = "title"; order = "asc"; }
+  if (params.sort === "popularity") { orderby = "popularity"; order = "desc"; }
 
   const [{ items: products, total, totalPages }, categories] = await Promise.all([
     searchProducts({

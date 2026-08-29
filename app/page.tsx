@@ -1,13 +1,19 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getProducts, getCategories } from "@/lib/woocommerce";
+import { getProducts, getCategories, searchProducts } from "@/lib/woocommerce";
 import ProductCard from "@/app/components/ProductCard";
 import CategoryCircles from "@/app/components/CategoryCircles";
+import BrandCarousel from "@/app/components/BrandCarousel";
+import ProductCarouselSection from "@/app/components/ProductCarouselSection";
+import BrandSpotlightCards from "@/app/components/BrandSpotlightCards";
+import JourneyBanner from "@/app/components/JourneyBanner";
 
 export default async function Home() {
-  const [products, categories] = await Promise.all([
+  const [products, categories, saleResult, bestSellersResult] = await Promise.all([
     getProducts(),
     getCategories(),
+    searchProducts({ onSale: true, perPage: 12 }),
+    searchProducts({ orderby: "popularity", order: "desc", perPage: 12 }),
   ]);
 
   const topCategories = categories
@@ -15,7 +21,11 @@ export default async function Home() {
     .sort((a: any, b: any) => b.count - a.count)
     .slice(0, 4);
 
+  const allBrandCategories = categories.filter((c: any) => c.count > 0);
+  const saleProducts = saleResult.items;
+  const bestSellers = bestSellersResult.items;
   const bannerProducts = products.slice(0, 3);
+  const journeyBackdrop = bestSellers[0]?.images?.[0] || products[0]?.images?.[0];
 
   return (
     <main className="min-h-screen bg-bg">
@@ -85,9 +95,29 @@ export default async function Home() {
 
       <CategoryCircles categories={topCategories} />
 
+      <BrandCarousel categories={allBrandCategories} />
+
+      <ProductCarouselSection
+        eyebrow="Limited Time"
+        title="On Sale Now"
+        products={saleProducts}
+        viewAllHref="/shop?sale=true"
+      />
+
+      <ProductCarouselSection
+        eyebrow="Customer Favorites"
+        title="Best Sellers"
+        products={bestSellers}
+        viewAllHref="/shop?sort=popularity"
+      />
+
+      <BrandSpotlightCards categories={categories} />
+
+      <JourneyBanner backgroundImage={journeyBackdrop} />
+
       <section className="mx-auto max-w-7xl px-6 pb-24">
         <div className="mb-10 flex items-end justify-between">
-          <h2 className="font-display text-3xl italic text-ink">Bestsellers</h2>
+          <h2 className="font-display text-3xl italic text-ink">New In</h2>
           <Link href="/shop" className="text-sm text-purple-700 hover:underline">View all</Link>
         </div>
 
