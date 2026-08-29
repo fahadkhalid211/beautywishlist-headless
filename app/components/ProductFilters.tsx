@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { buildListingHref, ListingFilters } from "@/lib/urlHelpers";
+import { decodeEntities } from "@/lib/decodeEntities";
 
 export default function ProductFilters({
   categories,
@@ -37,7 +38,7 @@ export default function ProductFilters({
                   active ? "bg-purple-50 font-medium text-purple-700" : "text-ink-soft hover:bg-purple-50/60"
                 }`}
               >
-                <span>{c.name}</span>
+                <span>{decodeEntities(c.name)}</span>
                 <span className="text-xs text-ink-soft/70">{c.count}</span>
               </Link>
             );

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { getCategories } from "@/lib/woocommerce";
+import { decodeEntities } from "@/lib/decodeEntities";
 
 export const metadata: Metadata = {
   title: "All Brands",
@@ -11,7 +12,9 @@ export const metadata: Metadata = {
 
 export default async function BrandPage() {
   const categories = await getCategories();
-  const visible = categories.filter((c: any) => c.count > 0);
+  const visible = categories
+    .filter((c: any) => c.count > 0)
+    .map((c: any) => ({ ...c, name: decodeEntities(c.name) }));
 
   const groups = new Map<string, any[]>();
   for (const category of visible) {

@@ -11,15 +11,15 @@ export default async function Header() {
   return (
     <header className="sticky top-0 z-50 bg-white">
       <div className="bg-purple-700 px-4 py-2 text-center text-[11px] text-white">
-        Free shipping on orders over Rs. 3,000 &middot; 100% Authentic Korean Skincare
+        Paid online? Send a screenshot on WhatsApp. &middot; 100% Authentic Korean Skincare
       </div>
 
       <div className="border-b border-line">
         <div className="mx-auto flex h-20 max-w-7xl items-center gap-3 px-4 md:gap-6 md:px-6">
           <MobileMenu menu={menu} />
 
-          <Link href="/" className="shrink-0 font-display text-xl italic text-purple-700 md:text-2xl">
-            Beauty Wishlist by HS
+          <Link href="/" className="shrink-0 font-display text-lg italic text-purple-700 sm:text-xl md:text-2xl">
+            Beauty Wishlist<span className="hidden sm:inline"> by HS</span>
           </Link>
 
           <div className="hidden flex-1 md:block">

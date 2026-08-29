@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/app/components/account/AuthProvider";
+import { decodeEntities } from "@/lib/decodeEntities";
 
 type OrderDetail = {
   id: number;
@@ -110,17 +111,20 @@ export default function OrderDetailPage() {
             <div className="rounded-3xl border border-line bg-white p-6">
               <h2 className="font-display text-lg italic text-ink">Items</h2>
               <div className="mt-4 space-y-4">
-                {order.items.map((item, i) => (
+                {order.items.map((item, i) => {
+                  const itemName = decodeEntities(item.name);
+                  return (
                   <div key={i} className="flex items-center gap-3">
                     <div className="relative h-14 w-12 shrink-0 overflow-hidden rounded-xl bg-purple-50">
-                      {item.thumbnail && <Image src={item.thumbnail} alt={item.name} fill sizes="60px" className="object-cover" />}
+                      {item.thumbnail && <Image src={item.thumbnail} alt={itemName} fill sizes="60px" className="object-cover" />}
                     </div>
-                    <p className="flex-1 text-sm font-medium text-ink">{item.name} × {item.quantity}</p>
+                    <p className="flex-1 text-sm font-medium text-ink">{itemName} × {item.quantity}</p>
                     <span className="text-sm font-semibold text-purple-700">
                       {order.currency} {Number(item.total).toLocaleString("en-PK")}
                     </span>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="mt-5 space-y-2 border-t border-line pt-5 text-sm">

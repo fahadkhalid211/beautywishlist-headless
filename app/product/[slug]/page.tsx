@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getProduct, getProductsByCategory } from "@/lib/woocommerce";
 import { getPriceValue } from "@/lib/money";
 import { stripHtml } from "@/lib/seo";
+import { decodeEntities } from "@/lib/decodeEntities";
 import AddToCart from "@/app/components/cart/AddToCart";
 import WishlistButton from "@/app/components/wishlist/WishlistButton";
 import ProductCard from "@/app/components/ProductCard";
@@ -16,22 +17,23 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const product = await getProduct(slug);
   if (!product) return {};
 
+  const name = decodeEntities(product.name);
   const description = stripHtml(product.short_description || product.description);
   const image = product.images?.[0]?.src;
 
   return {
-    title: product.name,
+    title: name,
     description,
     alternates: { canonical: `/product/${product.slug}` },
     openGraph: {
-      title: product.name,
+      title: name,
       description,
       type: "website",
-      images: image ? [{ url: image, alt: product.images?.[0]?.alt || product.name }] : undefined,
+      images: image ? [{ url: image, alt: product.images?.[0]?.alt || name }] : undefined,
     },
     twitter: {
       card: "summary_large_image",
-      title: product.name,
+      title: name,
       description,
       images: image ? [image] : undefined,
     },
@@ -51,15 +53,17 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const rating = Number(product.average_rating) || 0;
   const reviewCount = product.review_count ?? 0;
   const images = product.images ?? [];
+  const productName = decodeEntities(product.name);
+  const categoryName = category ? decodeEntities(category.name) : null;
 
   const productJsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
-    name: product.name,
+    name: productName,
     image: images.map((img: any) => img.src),
     description: stripHtml(product.short_description || product.description, 500),
     sku: product.sku || undefined,
-    brand: category ? { "@type": "Brand", name: category.name } : undefined,
+    brand: categoryName ? { "@type": "Brand", name: categoryName } : undefined,
     offers: {
       "@type": "Offer",
       priceCurrency: product.prices?.currency_code || "PKR",
@@ -92,15 +96,15 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <span>/</span>
           {category && (
             <>
-              <Link href={`/category/${category.slug}`} className="hover:text-purple-700">{category.name}</Link>
+              <Link href={`/category/${category.slug}`} className="hover:text-purple-700">{categoryName}</Link>
               <span>/</span>
             </>
           )}
-          <span className="text-ink">{product.name}</span>
+          <span className="text-ink">{productName}</span>
         </nav>
 
         <div className="grid gap-12 md:grid-cols-2">
-          <Gallery images={images} alt={product.name} />
+          <Gallery images={images} alt={productName} />
 
           <div className="flex flex-col justify-center">
             <div className="flex items-center gap-2">
@@ -108,7 +112,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               {!product.is_in_stock && <span className="rounded-full bg-ink px-3 py-1 text-xs font-medium text-white">Sold Out</span>}
             </div>
 
-            <h1 className="mt-4 font-display text-4xl italic tracking-tight text-ink">{product.name}</h1>
+            <h1 className="mt-4 font-display text-4xl italic tracking-tight text-ink">{productName}</h1>
 
             {rating > 0 && (
               <div className="mt-3">
@@ -144,7 +148,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   item={{
                     id: product.id,
                     slug: product.slug,
-                    name: product.name,
+                    name: productName,
                     image: images[0]?.src ?? null,
                     price: product.prices.price,
                     currency_prefix: product.prices.currency_prefix,
@@ -158,7 +162,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
                         <div className="mt-8 grid grid-cols-2 gap-4 border-t border-line pt-8 sm:grid-cols-4">
               {[
-                { title: "Free Shipping", desc: "On orders over Rs. 3,000", icon: <path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z" /> },
+                { title: "Paid Online?", desc: "Send a screenshot on WhatsApp", icon: <path d="M21 11.5a8.4 8.4 0 0 1-9.9 8.3 8.5 8.5 0 0 1-3.6-1.3L3 20l1.5-4.5a8.4 8.4 0 0 1-1.3-4.5 8.5 8.5 0 1 1 17.8.5Z" /> },
                 { title: "100% Authentic", desc: "Guaranteed original", icon: <path d="M12 2l8 4v6c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6z" /> },
                 { title: "Easy Returns", desc: "14-day return policy", icon: <path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5" /> },
                 { title: "Secure Payments", desc: "SSL encrypted checkout", icon: <path d="M6 11V8a6 6 0 0 1 12 0v3M5 11h14v9H5z" /> },

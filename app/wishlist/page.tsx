@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useWishlist } from "@/app/components/wishlist/WishlistProvider";
 import { useCart } from "@/app/components/cart/CartProvider";
 import { getFriendlyErrorMessage } from "@/lib/friendlyError";
+import { decodeEntities } from "@/lib/decodeEntities";
 
 export default function WishlistPage() {
   const { items, remove, hydrated } = useWishlist();
@@ -62,6 +63,7 @@ export default function WishlistPage() {
               const minorUnit = item.currency_minor_unit ?? 2;
               const displayPrice = Number(item.price) / Math.pow(10, minorUnit);
               const outOfStock = item.is_in_stock === false;
+              const name = decodeEntities(item.name);
 
               return (
                 <div key={item.id} className="group relative">
@@ -70,7 +72,7 @@ export default function WishlistPage() {
                       {item.image && (
                         <Image
                           src={item.image}
-                          alt={item.name}
+                          alt={name}
                           fill
                           sizes="(max-width: 768px) 50vw, 25vw"
                           className="object-contain transition duration-500 group-hover:scale-105"
@@ -82,7 +84,7 @@ export default function WishlistPage() {
                         </span>
                       )}
                     </div>
-                    <h2 className="mt-3 line-clamp-2 text-sm font-medium text-ink">{item.name}</h2>
+                    <h2 className="mt-3 line-clamp-2 text-sm font-medium text-ink">{name}</h2>
                     <p className="mt-1 text-sm font-semibold text-purple-700">
                       {item.currency_prefix}{displayPrice.toLocaleString("en-PK")}
                     </p>

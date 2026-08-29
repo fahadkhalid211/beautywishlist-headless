@@ -6,6 +6,7 @@ import Stars from "@/app/components/StarRating";
 import AddToCart from "@/app/components/cart/AddToCart";
 import WishlistButton from "@/app/components/wishlist/WishlistButton";
 import { getPriceValue } from "@/lib/money";
+import { decodeEntities } from "@/lib/decodeEntities";
 export default function ProductCard({ product }: { product: any }) {
   const image = product.images?.[0];
   const minorUnit = product.prices?.currency_minor_unit ?? 2;
@@ -16,6 +17,8 @@ export default function ProductCard({ product }: { product: any }) {
   const reviewCount = product.review_count ?? 0;
   const discount = product.on_sale && regular ? Math.round(100 - (price / regular) * 100) : null;
   const category = product.categories?.[0];
+  const productName = decodeEntities(product.name);
+  const categoryName = category ? decodeEntities(category.name) : null;
 
   return (
     <div className="group relative">
@@ -24,7 +27,7 @@ export default function ProductCard({ product }: { product: any }) {
           {image && (
             <Image
               src={image.src}
-              alt={image.alt || product.name}
+              alt={image.alt || productName}
               fill
               sizes="(max-width: 768px) 50vw, 25vw"
               className="object-contain transition duration-500 group-hover:scale-105"
@@ -45,7 +48,7 @@ export default function ProductCard({ product }: { product: any }) {
               item={{
                 id: product.id,
                 slug: product.slug,
-                name: product.name,
+                name: productName,
                 image: image?.src ?? null,
                 price: product.prices.price,
                 currency_prefix: prefix,
@@ -66,10 +69,10 @@ export default function ProductCard({ product }: { product: any }) {
         </div>
 
         <div className="pt-4">
-          {category && (
-            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-purple-500">{category.name}</p>
+          {categoryName && (
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-purple-500">{categoryName}</p>
           )}
-          <h2 className="line-clamp-2 text-sm font-medium text-ink">{product.name}</h2>
+          <h2 className="line-clamp-2 text-sm font-medium text-ink">{productName}</h2>
 
           {rating > 0 && (
             <div className="mt-1.5">

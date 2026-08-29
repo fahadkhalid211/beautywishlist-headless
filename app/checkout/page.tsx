@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/app/components/cart/CartProvider";
-import FreeShippingProgress from "@/app/components/FreeShippingProgress";
+import { decodeEntities } from "@/lib/decodeEntities";
 
 function formatMoney(amount: string | number | undefined, minorUnit: number, prefix = "") {
   if (amount === undefined) return "";
@@ -67,7 +67,6 @@ export default function CheckoutPage() {
   const [customerNote, setCustomerNote] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "bacs">("cod");
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(FALLBACK_METHODS);
-  const [freeShippingThreshold, setFreeShippingThreshold] = useState<number | null>(null);
 
   const [step, setStep] = useState<1 | 2>(1);
   const [savingAddress, setSavingAddress] = useState(false);
@@ -93,20 +92,7 @@ export default function CheckoutPage() {
   const rates: any[] = ratePackage?.shipping_rates ?? [];
   const selectedRate = rates.find((r) => r.selected);
   const canPlaceOrder = step === 2 && (!needsShipping || rates.length === 0 || !!selectedRate);
-  const subtotalValue = totals ? Number(totals.total_items) / Math.pow(10, minorUnit) : 0;
-  const freeShippingReached = freeShippingThreshold !== null && subtotalValue >= freeShippingThreshold;
   const displayTotal = Number(totals?.total_price ?? 0);
-
-  useEffect(() => {
-    fetch("/api/free-shipping-threshold")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.success && typeof data.threshold === "number") {
-          setFreeShippingThreshold(data.threshold);
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     fetch("/api/payment-methods")
@@ -169,30 +155,24 @@ export default function CheckoutPage() {
     }
   }
 
-  function pickBestRate(availableRates: any[], method: "cod" | "bacs", freeShipping: boolean) {
+  function pickBestRate(availableRates: any[], method: "cod" | "bacs") {
     if (availableRates.length === 0) return null;
-
-    if (freeShipping) {
-      const free = availableRates.find((r) => r.method_id === "free_shipping" || /free/i.test(r.name));
-      if (free) return free;
-    }
 
     const keywords = method === "cod" ? ["cod", "cash"] : ["bank", "transfer", "prepaid"];
     const matched = availableRates.find((r) => keywords.some((k) => r.name.toLowerCase().includes(k)));
     if (matched) return matched;
 
-    const nonFree = availableRates.find((r) => r.method_id !== "free_shipping" && !/free/i.test(r.name));
-    return nonFree || availableRates[0];
+    return availableRates[0];
   }
 
   useEffect(() => {
     if (step !== 2 || rates.length === 0) return;
-    const best = pickBestRate(rates, paymentMethod, freeShippingReached);
+    const best = pickBestRate(rates, paymentMethod);
     if (best && !best.selected) {
       handleSelectRate(best.rate_id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, rates.length, paymentMethod, freeShippingReached]);
+  }, [step, rates.length, paymentMethod]);
 
   async function handlePlaceOrder() {
     setError(null);
@@ -278,12 +258,13 @@ export default function CheckoutPage() {
                 {orderSnapshot.items.map((item: any) => {
                   const image = item.images?.[0];
                   const qty = item.quantity?.value ?? item.quantity ?? 1;
+                  const name = decodeEntities(item.name);
                   return (
                     <div key={item.key} className="flex items-center gap-3">
                       <div className="relative h-12 w-10 shrink-0 overflow-hidden rounded-lg bg-purple-50">
-                        {image && <Image src={image.src} alt={image.alt || item.name} fill sizes="50px" className="object-cover" />}
+                        {image && <Image src={image.src} alt={image.alt || name} fill sizes="50px" className="object-cover" />}
                       </div>
-                      <p className="line-clamp-1 flex-1 text-xs font-medium text-ink">{item.name} × {qty}</p>
+                      <p className="line-clamp-1 flex-1 text-xs font-medium text-ink">{name} × {qty}</p>
                       <span className="text-xs font-semibold text-purple-700">
                         {formatMoney(item.totals?.line_total, snapMinorUnit, snapPrefix)}
                       </span>
@@ -344,12 +325,6 @@ export default function CheckoutPage() {
         )}
 
         {!loading && items.length > 0 && (
-          <div className="mt-6">
-            <FreeShippingProgress />
-          </div>
-        )}
-
-        {!loading && items.length > 0 && (
           <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
             <div className="space-y-6">
               {error && (
@@ -378,10 +353,7 @@ export default function CheckoutPage() {
                       <Field label="City" value={address.city} onChange={(v) => updateAddress("city", v)} required />
                       <Field label="Province / State" value={address.state} onChange={(v) => updateAddress("state", v)} required />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <Field label="Postcode" value={address.postcode} onChange={(v) => updateAddress("postcode", v)} required />
-                      <Field label="Country code" value={address.country} onChange={(v) => updateAddress("country", v.toUpperCase())} required />
-                    </div>
+                    <Field label="Postcode" value={address.postcode} onChange={(v) => updateAddress("postcode", v)} required />
 
                     <button
                       type="submit"
@@ -487,19 +459,20 @@ export default function CheckoutPage() {
                 {items.map((item: any) => {
                   const image = item.images?.[0];
                   const qty = item.quantity?.value ?? item.quantity ?? 1;
+                  const name = decodeEntities(item.name);
                   return (
                     <div key={item.key} className="flex items-center gap-3">
                       <div className="relative h-14 w-12 shrink-0">
                         <div className="absolute inset-0 overflow-hidden rounded-xl bg-purple-50">
                           {image && (
-                            <Image src={image.src} alt={image.alt || item.name} fill sizes="60px" className="object-contain" />
+                            <Image src={image.src} alt={image.alt || name} fill sizes="60px" className="object-contain" />
                           )}
                         </div>
                         <span className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-ink text-[10px] font-medium text-white">
                           {qty}
                         </span>
                       </div>
-                      <p className="line-clamp-2 flex-1 text-xs font-medium text-ink">{item.name}</p>
+                      <p className="line-clamp-2 flex-1 text-xs font-medium text-ink">{name}</p>
                       <span className="text-xs font-semibold text-purple-700">
                         {formatMoney(item.totals?.line_total, minorUnit, prefix)}
                       </span>
@@ -515,7 +488,7 @@ export default function CheckoutPage() {
                 </div>
                 {needsShipping && (
                   <div className="flex items-center justify-between text-ink-soft">
-                    <span>Shipping{selectedRate ? ` (${selectedRate.name})` : ""}</span>
+                    <span>Shipping{selectedRate ? ` (${decodeEntities(selectedRate.name)})` : ""}</span>
                     <span className="text-ink">
                       {step < 2 || !selectedRate
                         ? "—"
@@ -528,7 +501,7 @@ export default function CheckoutPage() {
                 {(totals?.tax_lines ?? []).length > 0
                   ? (totals.tax_lines as any[]).map((line: any) => (
                       <div key={line.name} className="flex items-center justify-between text-ink-soft">
-                        <span>{line.name}</span>
+                        <span>{decodeEntities(line.name)}</span>
                         <span className="text-ink">{formatMoney(line.price, minorUnit, prefix)}</span>
                       </div>
                     ))

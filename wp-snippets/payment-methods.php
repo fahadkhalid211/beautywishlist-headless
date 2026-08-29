@@ -1,12 +1,15 @@
 <?php
 /**
  * Beauty Wishlist
- * Headless Payment Methods API
+ * Headless Payment Methods API + Payment-Method-Based Tax
  *
- * Exposes payment method info (description, bank account details) and the
- * store's Free Shipping threshold. Actual delivery cost now comes entirely
- * from real WooCommerce shipping rates, auto-matched by the frontend based
- * on the selected payment method — no separate fee mechanism.
+ * Exposes payment method info (description, bank account details).
+ *
+ * Tax rule: Cash on Delivery orders get a flat 4% tax on the subtotal.
+ * Direct Bank Transfer (paid online) orders get no tax at all — any real
+ * WooCommerce tax rates are forced to the built-in "Zero rate" tax class
+ * for these orders, regardless of what's configured under WooCommerce →
+ * Settings → Tax.
  *
  * API:
  * https://new.beautywishlistbyhs.shop/wp-json/custom/v1/payment-methods
@@ -18,39 +21,45 @@ if (!defined('ABSPATH')) {
 
 
 /**
- * Free Shipping Threshold — shared helper.
- *
- * Scans all shipping zones for an enabled "Free Shipping" method that
- * requires a minimum order amount, and returns the lowest such threshold
- * found. Used by the frontend's free-shipping progress widget.
+ * Apply the payment-method-based tax rule to real orders placed through
+ * the Store API (headless checkout). Official Store API extensibility
+ * hook for modifying an order based on the incoming checkout request.
  */
-function bw_calculate_free_shipping_threshold() {
+add_action('woocommerce_store_api_checkout_update_order_from_request', function ($order, $request) {
 
-    $lowest = null;
+    $payment_method = $request->get_param('payment_method');
 
-    $zones   = WC_Shipping_Zones::get_zones();
-    $zones[] = ['zone_id' => 0]; // include "Locations not covered by your other zones"
+    if ($payment_method === 'bacs') {
 
-    foreach ($zones as $zone_data) {
+        // Paid online — no tax. Force every line item to the built-in
+        // "Zero rate" tax class so any configured tax rates don't apply.
+        foreach ($order->get_items() as $item) {
+            $item->set_tax_class('zero-rate');
+            $item->save();
+        }
 
-        $zone = new WC_Shipping_Zone($zone_data['zone_id']);
+        $order->calculate_totals();
 
-        foreach ($zone->get_shipping_methods(true) as $method) {
+    } elseif ($payment_method === 'cod') {
 
-            if ($method->id !== 'free_shipping' || $method->enabled !== 'yes') {
-                continue;
-            }
+        // Cash on Delivery — flat 4% tax on the subtotal.
+        $subtotal = (float) $order->get_subtotal();
+        $tax      = round($subtotal * 0.04, 2);
 
-            $min_amount = isset($method->min_amount) ? floatval($method->min_amount) : 0;
+        if ($tax > 0) {
 
-            if ($min_amount > 0 && ($lowest === null || $min_amount < $lowest)) {
-                $lowest = $min_amount;
-            }
+            $item = new WC_Order_Item_Fee();
+            $item->set_name('Tax (4%)');
+            $item->set_amount($tax);
+            $item->set_total($tax);
+            $item->set_tax_status('none');
+
+            $order->add_item($item);
+            $order->calculate_totals();
         }
     }
 
-    return $lowest;
-}
+}, 10, 2);
 
 
 /**
@@ -64,23 +73,7 @@ add_action('rest_api_init', function () {
         'permission_callback' => '__return_true',
     ]);
 
-    register_rest_route('custom/v1', '/free-shipping-threshold', [
-        'methods'             => 'GET',
-        'callback'            => 'bw_get_free_shipping_threshold',
-        'permission_callback' => '__return_true',
-    ]);
-
 });
-
-
-function bw_get_free_shipping_threshold() {
-
-    return rest_ensure_response([
-        'success'   => true,
-        'threshold' => bw_calculate_free_shipping_threshold(),
-        'currency'  => get_woocommerce_currency(),
-    ]);
-}
 
 
 function bw_get_payment_methods() {

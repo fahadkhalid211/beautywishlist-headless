@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/app/components/cart/CartProvider";
 import QuantitySelector from "@/app/components/QuantitySelector";
-import FreeShippingProgress from "@/app/components/FreeShippingProgress";
+import { decodeEntities } from "@/lib/decodeEntities";
 
 function formatMoney(amount: string | number | undefined, minorUnit: number, prefix = "") {
   if (amount === undefined) return "";
@@ -114,18 +114,13 @@ export default function CartPage() {
         )}
 
         {items.length > 0 && (
-          <div className="mb-6">
-            <FreeShippingProgress />
-          </div>
-        )}
-
-        {items.length > 0 && (
           <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
             <div className="overflow-hidden rounded-3xl border border-line bg-white">
               {items.map((item: any) => {
                 const image = item.images?.[0];
                 const isUpdating = updatingKey === item.key;
                 const qty = item.quantity?.value ?? item.quantity ?? 1;
+                const name = decodeEntities(item.name);
 
                 return (
                   <div
@@ -139,7 +134,7 @@ export default function CartPage() {
                       {image && (
                         <Image
                           src={image.src}
-                          alt={image.alt || item.name}
+                          alt={image.alt || name}
                           fill
                           sizes="120px"
                           className="object-cover"
@@ -154,7 +149,7 @@ export default function CartPage() {
                             href={`/product/${item.slug || ""}`}
                             className="line-clamp-2 text-sm font-medium text-ink hover:text-purple-700"
                           >
-                            {item.name}
+                            {name}
                           </Link>
                           {item.variation?.length > 0 && (
                             <p className="mt-1 text-xs text-ink-soft">
@@ -220,7 +215,7 @@ export default function CartPage() {
                 {taxLines.length > 0
                   ? taxLines.map((line: any) => (
                       <div key={line.name} className="flex items-center justify-between text-ink-soft">
-                        <span>{line.name}</span>
+                        <span>{decodeEntities(line.name)}</span>
                         <span className="text-ink">{formatMoney(line.price, minorUnit, prefix)}</span>
                       </div>
                     ))

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { decodeEntities } from "@/lib/decodeEntities";
 
 export default function CategoryCircles({ categories }: { categories: any[] }) {
   if (categories.length === 0) return null;
@@ -17,28 +18,31 @@ export default function CategoryCircles({ categories }: { categories: any[] }) {
       </div>
 
       <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-        {categories.map((category) => (
-          <Link key={category.id} href={`/category/${category.slug}`} className="group flex flex-col items-center text-center">
-            <div className="relative aspect-square w-full max-w-[160px] overflow-hidden rounded-full bg-purple-50 ring-1 ring-line transition group-hover:ring-purple-300">
-              {category.image?.src ? (
-                <Image
-                  src={category.image.src}
-                  alt={category.image.alt || category.name}
-                  fill
-                  sizes="(max-width: 768px) 40vw, 160px"
-                  className="object-cover transition duration-500 group-hover:scale-110"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center font-display text-base italic text-purple-400">
-                  {category.name}
-                </div>
-              )}
-            </div>
-            <h3 className="mt-4 text-sm font-medium text-ink transition group-hover:text-purple-700">
-              {category.name}
-            </h3>
-          </Link>
-        ))}
+        {categories.map((category) => {
+          const name = decodeEntities(category.name);
+          return (
+            <Link key={category.id} href={`/category/${category.slug}`} className="group flex flex-col items-center text-center">
+              <div className="relative aspect-square w-full max-w-[160px] overflow-hidden rounded-full bg-purple-50 ring-1 ring-line transition group-hover:ring-purple-300">
+                {category.image?.src ? (
+                  <Image
+                    src={category.image.src}
+                    alt={category.image.alt || name}
+                    fill
+                    sizes="(max-width: 768px) 40vw, 160px"
+                    className="object-cover transition duration-500 group-hover:scale-110"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center font-display text-base italic text-purple-400">
+                    {name}
+                  </div>
+                )}
+              </div>
+              <h3 className="mt-4 text-sm font-medium text-ink transition group-hover:text-purple-700">
+                {name}
+              </h3>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );

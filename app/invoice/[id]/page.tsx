@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { decodeEntities } from "@/lib/decodeEntities";
 
 type InvoiceOrder = {
   id: number;
@@ -106,7 +107,7 @@ export default function InvoicePage() {
         <div className="rounded-3xl border border-line bg-white p-6 md:p-10 print:rounded-none print:border-0 print:p-0">
           <div className="flex flex-wrap items-start justify-between gap-6 border-b border-line pb-6">
             <div>
-              <h1 className="font-display text-2xl italic text-ink md:text-3xl">{order.store.name}</h1>
+              <h1 className="font-display text-2xl italic text-ink md:text-3xl">{decodeEntities(order.store.name)}</h1>
               {order.store.address && <p className="mt-1 text-xs text-ink-soft">{order.store.address}</p>}
               {order.store.email && <p className="text-xs text-ink-soft">{order.store.email}</p>}
             </div>
@@ -147,17 +148,19 @@ export default function InvoicePage() {
                 </tr>
               </thead>
               <tbody>
-                {order.items.map((item, i) => (
+                {order.items.map((item, i) => {
+                  const itemName = decodeEntities(item.name);
+                  return (
                   <tr key={i} className="border-b border-line/60">
                     <td className="py-3">
                       <div className="flex items-center gap-3">
                         {item.thumbnail && (
                           <div className="relative h-12 w-10 shrink-0 overflow-hidden rounded-lg bg-purple-50 print:hidden">
-                            <Image src={item.thumbnail} alt={item.name} fill sizes="48px" className="object-cover" />
+                            <Image src={item.thumbnail} alt={itemName} fill sizes="48px" className="object-cover" />
                           </div>
                         )}
                         <div>
-                          <p className="font-medium text-ink">{item.name}</p>
+                          <p className="font-medium text-ink">{itemName}</p>
                           {item.sku && <p className="text-xs text-ink-soft">SKU: {item.sku}</p>}
                         </div>
                       </div>
@@ -166,7 +169,8 @@ export default function InvoicePage() {
                     <td className="py-3 text-right text-ink-soft">{money(item.unit_price, order.currency)}</td>
                     <td className="py-3 text-right font-medium text-ink">{money(item.total, order.currency)}</td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             </div>
@@ -184,7 +188,7 @@ export default function InvoicePage() {
               )}
               {order.fee_lines.map((fee, i) => (
                 <div key={i} className="flex items-center justify-between text-ink-soft">
-                  <span>{fee.name}</span>
+                  <span>{decodeEntities(fee.name)}</span>
                   <span className="text-ink">{money(fee.total, order.currency)}</span>
                 </div>
               ))}

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "./CartProvider";
 import QuantitySelector from "@/app/components/QuantitySelector";
-import FreeShippingProgress from "@/app/components/FreeShippingProgress";
+import { decodeEntities } from "@/lib/decodeEntities";
 
 function formatMoney(amount: string | number | undefined, minorUnit: number, prefix = "") {
   if (amount === undefined) return "";
@@ -47,12 +47,6 @@ export default function CartDrawer() {
           </button>
         </div>
 
-        {items.length > 0 && (
-          <div className="border-b border-line px-5 py-3">
-            <FreeShippingProgress />
-          </div>
-        )}
-
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {items.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
@@ -71,15 +65,16 @@ export default function CartDrawer() {
                 const image = item.images?.[0];
                 const isUpdating = updatingKey === item.key;
                 const qty = item.quantity?.value ?? item.quantity ?? 1;
+                const name = decodeEntities(item.name);
 
                 return (
                   <div key={item.key} className={`flex gap-3 rounded-2xl border border-line bg-white p-3 ${isUpdating ? "opacity-50" : ""}`}>
                     <div className="relative h-16 w-14 shrink-0 overflow-hidden rounded-xl bg-purple-50">
-                      {image && <Image src={image.src} alt={image.alt || item.name} fill sizes="60px" className="object-contain" />}
+                      {image && <Image src={image.src} alt={image.alt || name} fill sizes="60px" className="object-contain" />}
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col justify-between">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="line-clamp-2 text-xs font-medium text-ink">{item.name}</p>
+                        <p className="line-clamp-2 text-xs font-medium text-ink">{name}</p>
                         <button
                           type="button"
                           aria-label="Remove item"

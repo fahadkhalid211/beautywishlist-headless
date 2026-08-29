@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { decodeEntities } from "@/lib/decodeEntities";
 
 export default function SearchBar({ className = "" }: { className?: string }) {
   const [query, setQuery] = useState("");
@@ -75,10 +76,10 @@ export default function SearchBar({ className = "" }: { className?: string }) {
               className="flex items-center gap-3 border-b border-line px-5 py-3 last:border-0 hover:bg-purple-50"
             >
               <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-purple-50">
-                {p.image && <Image src={p.image} alt={p.name} fill className="object-cover" sizes="48px" />}
+                {p.image && <Image src={p.image} alt={decodeEntities(p.name)} fill className="object-cover" sizes="48px" />}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-ink">{p.name}</p>
+                <p className="truncate text-sm text-ink">{decodeEntities(p.name)}</p>
                 <p className="text-xs font-medium text-purple-700">{p.currency_prefix}{(Number(p.price) / Math.pow(10, p.currency_minor_unit ?? 2)).toLocaleString("en-PK")}</p>
               </div>
             </Link>

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getCategory, getCategories, searchProducts } from "@/lib/woocommerce";
 import { stripHtml } from "@/lib/seo";
+import { decodeEntities } from "@/lib/decodeEntities";
 import ProductListing from "@/app/components/ProductListing";
 
 type SearchParams = {
@@ -18,23 +19,24 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const category = await getCategory(slug);
   if (!category) return {};
 
+  const name = decodeEntities(category.name);
   const description = category.description
     ? stripHtml(category.description)
-    : `Shop ${category.name} at Beauty Wishlist by HS.`;
+    : `Shop ${name} at Beauty Wishlist by HS.`;
   const image = category.image?.src;
 
   return {
-    title: category.name,
+    title: name,
     description,
     alternates: { canonical: `/category/${slug}` },
     openGraph: {
-      title: category.name,
+      title: name,
       description,
-      images: image ? [{ url: image, alt: category.image?.alt || category.name }] : undefined,
+      images: image ? [{ url: image, alt: category.image?.alt || name }] : undefined,
     },
     twitter: {
       card: "summary_large_image",
-      title: category.name,
+      title: name,
       description,
       images: image ? [image] : undefined,
     },
@@ -79,7 +81,7 @@ export default async function CategoryPage({
 
   return (
     <ProductListing
-      title={category.name}
+      title={decodeEntities(category.name)}
       description={category.description}
       products={products}
       categories={categories}

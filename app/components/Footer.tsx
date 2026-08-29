@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCategories } from "@/lib/woocommerce";
+import { decodeEntities } from "@/lib/decodeEntities";
 
 export default async function Footer() {
   const categories = await getCategories();
@@ -9,7 +10,7 @@ export default async function Footer() {
     <footer className="mt-24 border-t border-line bg-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 md:grid-cols-4">
         <div>
-          <p className="font-display text-2xl italic text-purple-700">Beauty Wishlist</p>
+          <p className="font-display text-2xl italic text-purple-700">Beauty Wishlist by HS</p>
           <p className="mt-3 max-w-xs text-sm leading-6 text-ink-soft">
             Curated cosmetics and Korean skincare, picked for glow, not gimmicks. Authentic products, delivered with care.
           </p>
@@ -30,7 +31,7 @@ export default async function Footer() {
           <h3 className="text-sm font-semibold text-ink">Categories</h3>
           <ul className="mt-4 space-y-3 text-sm text-ink-soft">
             {topCategories.map((c: any) => (
-              <li key={c.id}><Link href={`/category/${c.slug}`} className="hover:text-purple-700">{c.name}</Link></li>
+              <li key={c.id}><Link href={`/category/${c.slug}`} className="hover:text-purple-700">{decodeEntities(c.name)}</Link></li>
             ))}
           </ul>
         </div>
@@ -38,7 +39,7 @@ export default async function Footer() {
         <div>
           <h3 className="text-sm font-semibold text-ink">Stay in Touch</h3>
           <p className="mt-4 text-sm text-ink-soft">
-            100% authentic products. Free shipping on orders over Rs. 3,000.
+            Paid online? Send a screenshot on WhatsApp.
           </p>
         </div>
       </div>

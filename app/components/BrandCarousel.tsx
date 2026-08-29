@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import Carousel from "@/app/components/Carousel";
+import { decodeEntities } from "@/lib/decodeEntities";
 
 export default function BrandCarousel({ categories }: { categories: any[] }) {
   if (categories.length === 0) return null;
@@ -13,24 +14,27 @@ export default function BrandCarousel({ categories }: { categories: any[] }) {
       </div>
 
       <Carousel>
-        {categories.map((c: any) => (
-          <Link
-            key={c.id}
-            href={`/category/${c.slug}`}
-            className="group flex w-24 shrink-0 snap-start flex-col items-center text-center sm:w-28"
-          >
-            <div className="relative aspect-square w-full overflow-hidden rounded-full bg-purple-50 ring-1 ring-line transition group-hover:ring-purple-300">
-              {c.image?.src ? (
-                <Image src={c.image.src} alt={c.image.alt || c.name} fill sizes="112px" className="object-cover transition duration-500 group-hover:scale-110" />
-              ) : (
-                <div className="flex h-full items-center justify-center font-display text-lg italic text-purple-400">
-                  {c.name.charAt(0)}
-                </div>
-              )}
-            </div>
-            <p className="mt-3 line-clamp-2 text-xs font-medium text-ink transition group-hover:text-purple-700">{c.name}</p>
-          </Link>
-        ))}
+        {categories.map((c: any) => {
+          const name = decodeEntities(c.name);
+          return (
+            <Link
+              key={c.id}
+              href={`/category/${c.slug}`}
+              className="group flex w-24 shrink-0 snap-start flex-col items-center text-center sm:w-28"
+            >
+              <div className="relative aspect-square w-full overflow-hidden rounded-full bg-purple-50 ring-1 ring-line transition group-hover:ring-purple-300">
+                {c.image?.src ? (
+                  <Image src={c.image.src} alt={c.image.alt || name} fill sizes="112px" className="object-cover transition duration-500 group-hover:scale-110" />
+                ) : (
+                  <div className="flex h-full items-center justify-center font-display text-lg italic text-purple-400">
+                    {name.charAt(0)}
+                  </div>
+                )}
+              </div>
+              <p className="mt-3 line-clamp-2 text-xs font-medium text-ink transition group-hover:text-purple-700">{name}</p>
+            </Link>
+          );
+        })}
       </Carousel>
     </section>
   );
