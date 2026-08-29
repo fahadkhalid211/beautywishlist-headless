@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getWpAuthHeader } from "@/lib/wpAuth";
 
 const API = process.env.NEXT_PUBLIC_WC_STORE_API!;
 
@@ -7,11 +8,12 @@ export async function POST(request: NextRequest) {
     await request.json();
   const ua = request.headers.get("user-agent") ?? "";
   let token = request.cookies.get("wc_cart_token")?.value;
+  const authHeader = getWpAuthHeader(request);
 
   const cartResponse = await fetch(`${API}/cart`, {
     method: "GET",
     cache: "no-store",
-    headers: { ...(token ? { "Cart-Token": token } : {}), "User-Agent": ua },
+    headers: { ...(token ? { "Cart-Token": token } : {}), "User-Agent": ua, ...authHeader },
   });
 
   const initToken = cartResponse.headers.get("Cart-Token");
@@ -26,6 +28,7 @@ export async function POST(request: NextRequest) {
       ...(token ? { "Cart-Token": token } : {}),
       ...(nonce ? { Nonce: nonce } : {}),
       "User-Agent": ua,
+      ...authHeader,
     },
     body: JSON.stringify({
       billing_address,

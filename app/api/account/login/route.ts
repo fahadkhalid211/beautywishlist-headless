@@ -25,5 +25,16 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  if (response.ok && data.wp_credentials) {
+    const sessionValue = Buffer.from(JSON.stringify(data.wp_credentials)).toString("base64");
+    result.cookies.set("bw_wp_session", sessionValue, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+  }
+
   return result;
 }

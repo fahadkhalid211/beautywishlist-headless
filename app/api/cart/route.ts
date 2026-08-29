@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getWpAuthHeader } from "@/lib/wpAuth";
 
 const API = process.env.NEXT_PUBLIC_WC_STORE_API!;
 
@@ -14,13 +15,14 @@ function decode(token: string | null) {
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("wc_cart_token")?.value;
   const ua = request.headers.get("user-agent") ?? "";
+  const authHeader = getWpAuthHeader(request);
 
   console.log("GET /cart cookie token user_id:", decode(token || null)?.user_id);
 
   const response = await fetch(`${API}/cart`, {
     method: "GET",
     cache: "no-store",
-    headers: { ...(token ? { "Cart-Token": token } : {}), "User-Agent": ua },
+    headers: { ...(token ? { "Cart-Token": token } : {}), "User-Agent": ua, ...authHeader },
   });
 
   const data = await response.json();

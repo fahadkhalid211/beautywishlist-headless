@@ -100,8 +100,54 @@ function bw_require_auth($request) {
 
 
 /**
- * Build a user + address payload shared by register/login/me responses.
+ * Issue a WordPress Application Password for this user, so subsequent
+ * server-to-server checkout requests can authenticate as them via Basic
+ * Auth. This lets WooCommerce correctly attribute orders to the real
+ * customer_id instead of always creating guest orders — using WordPress's
+ * own native REST authentication, no plugin or session merging required.
  */
+function bw_issue_app_password($user) {
+
+    if (!class_exists('WP_Application_Passwords')) {
+        return null;
+    }
+
+    $result = WP_Application_Passwords::create_new_application_password($user->ID, [
+        'name' => 'Headless Frontend — ' . gmdate('Y-m-d H:i:s'),
+    ]);
+
+    if (is_wp_error($result)) {
+        return null;
+    }
+
+    [$raw_password, $item] = $result;
+
+    return [
+        'login'    => $user->user_login,
+        'password' => $raw_password,
+        'uuid'     => $item['uuid'],
+    ];
+}
+
+function bw_handle_revoke_app_password($request) {
+
+    $user = bw_require_auth($request);
+
+    if (is_wp_error($user)) {
+        return $user;
+    }
+
+    $uuid = sanitize_text_field($request->get_param('uuid'));
+
+    if ($uuid && class_exists('WP_Application_Passwords')) {
+        WP_Application_Passwords::delete_application_password($user->ID, $uuid);
+    }
+
+    return rest_ensure_response(['success' => true]);
+}
+
+
+
 function bw_build_user_payload($user) {
 
     $customer = new WC_Customer($user->ID);
@@ -160,9 +206,10 @@ function bw_handle_register($request) {
     $user = get_user_by('id', $customer_id);
 
     return rest_ensure_response([
-        'success' => true,
-        'token'   => bw_generate_token($customer_id),
-        'user'    => bw_build_user_payload($user),
+        'success'       => true,
+        'token'         => bw_generate_token($customer_id),
+        'user'          => bw_build_user_payload($user),
+        'wp_credentials' => bw_issue_app_password($user),
     ]);
 }
 
@@ -192,9 +239,10 @@ function bw_handle_login($request) {
     }
 
     return rest_ensure_response([
-        'success' => true,
-        'token'   => bw_generate_token($user->ID),
-        'user'    => bw_build_user_payload($user),
+        'success'        => true,
+        'token'          => bw_generate_token($user->ID),
+        'user'           => bw_build_user_payload($user),
+        'wp_credentials' => bw_issue_app_password($user),
     ]);
 }
 
@@ -420,6 +468,12 @@ add_action('rest_api_init', function () {
     register_rest_route('custom/v1', '/orders/(?P<id>\d+)', [
         'methods'             => 'GET',
         'callback'            => 'bw_handle_get_order',
+        'permission_callback' => '__return_true',
+    ]);
+
+    register_rest_route('custom/v1', '/revoke-app-password', [
+        'methods'             => 'POST',
+        'callback'            => 'bw_handle_revoke_app_password',
         'permission_callback' => '__return_true',
     ]);
 });
