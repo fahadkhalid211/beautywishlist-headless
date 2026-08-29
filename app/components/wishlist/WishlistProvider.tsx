@@ -9,6 +9,8 @@ export type WishlistItem = {
   image: string | null;
   price: string;
   currency_prefix: string;
+  currency_minor_unit?: number;
+  is_in_stock?: boolean;
 };
 
 type WishlistContextType = {

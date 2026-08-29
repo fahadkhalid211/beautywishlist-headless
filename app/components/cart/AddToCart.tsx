@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useCart } from "./CartProvider";
 import QuantitySelector from "@/app/components/QuantitySelector";
+import { getFriendlyErrorMessage } from "@/lib/friendlyError";
 
 export default function AddToCart({
   productId,
@@ -23,7 +24,14 @@ export default function AddToCart({
   async function handleAdd(e?: React.MouseEvent) {
     e?.preventDefault();
     e?.stopPropagation();
-    if (!inStock || status === "loading") return;
+    if (status === "loading") return;
+
+    if (!inStock) {
+      setError("This product is out of stock — try another one!");
+      setTimeout(() => setError(null), 4000);
+      return;
+    }
+
     setStatus("loading");
     setError(null);
     try {
@@ -32,7 +40,7 @@ export default function AddToCart({
       setTimeout(() => setStatus("idle"), 1500);
     } catch (err: any) {
       setStatus("idle");
-      setError(err?.message || "Unable to add to cart");
+      setError(getFriendlyErrorMessage(err?.message, "cart"));
       setTimeout(() => setError(null), 4000);
     }
   }
@@ -40,15 +48,21 @@ export default function AddToCart({
   if (compact) {
     return (
       <div>
-        <div className="flex flex-col gap-1.5">
-          <QuantitySelector quantity={quantity} onChange={setQuantity} size="sm" max={maxQuantity} />
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
+          <QuantitySelector
+            quantity={quantity}
+            onChange={setQuantity}
+            size="sm"
+            max={maxQuantity}
+            className="w-full justify-between sm:w-fit sm:justify-center"
+          />
           <button
             type="button"
             onClick={handleAdd}
-            disabled={!inStock || status === "loading"}
-            className={`w-full rounded-full bg-purple-600 py-2 text-xs font-medium text-white shadow-lg shadow-purple-900/20 transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-ink/40 ${
+            disabled={status === "loading"}
+            className={`w-full rounded-full bg-purple-600 py-2 text-xs font-medium text-white shadow-lg shadow-purple-900/20 transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-ink/40 sm:flex-1 ${
               status === "done" ? "scale-105 bg-emerald-500 hover:bg-emerald-500" : ""
-            }`}
+            } ${!inStock ? "bg-ink/50 hover:bg-ink/50" : ""}`}
           >
             {status === "loading" ? "Adding..." : status === "done" ? "Added ✓" : !inStock ? "Sold Out" : "Add to Cart"}
           </button>
@@ -67,10 +81,10 @@ export default function AddToCart({
       <button
         type="button"
         onClick={handleAdd}
-        disabled={!inStock || status === "loading"}
+        disabled={status === "loading"}
         className={`w-full rounded-full bg-purple-600 px-8 py-4 text-sm font-medium text-white transition hover:bg-purple-700 disabled:opacity-50 ${
           status === "done" ? "scale-[1.02] bg-emerald-500 hover:bg-emerald-500" : ""
-        }`}
+        } ${!inStock ? "bg-ink/50 hover:bg-ink/50" : ""}`}
       >
         {status === "loading" ? "Adding..." : status === "done" ? "Added to cart ✓" : !inStock ? "Sold Out" : "Add to Cart"}
       </button>

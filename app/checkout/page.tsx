@@ -68,10 +68,10 @@ export default function CheckoutPage() {
   const [customerNote, setCustomerNote] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "bacs">("cod");
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(FALLBACK_METHODS);
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState<number | null>(null);
 
   const [step, setStep] = useState<1 | 2>(1);
   const [savingAddress, setSavingAddress] = useState(false);
-  const [selectingRate, setSelectingRate] = useState(false);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderResult, setOrderResult] = useState<any>(null);
@@ -82,7 +82,7 @@ export default function CheckoutPage() {
     paymentMethod: string;
     paymentMethodTitle: string;
     paymentFee: number;
-    shippingRateName?: string;
+    freeShipping: boolean;
   } | null>(null);
 
   const loading = cart === null;
@@ -95,8 +95,21 @@ export default function CheckoutPage() {
   const rates: any[] = ratePackage?.shipping_rates ?? [];
   const selectedRate = rates.find((r) => r.selected);
   const canPlaceOrder = step === 2 && (!needsShipping || rates.length === 0 || !!selectedRate);
-  const selectedPaymentFee = step === 2 ? paymentMethods.find((m) => m.id === paymentMethod)?.fee ?? 0 : 0;
+  const subtotalValue = totals ? Number(totals.total_items) / Math.pow(10, minorUnit) : 0;
+  const freeShippingReached = freeShippingThreshold !== null && subtotalValue >= freeShippingThreshold;
+  const selectedPaymentFee = step === 2 && !freeShippingReached ? paymentMethods.find((m) => m.id === paymentMethod)?.fee ?? 0 : 0;
   const displayTotal = Number(totals?.total_price ?? 0) + selectedPaymentFee * Math.pow(10, minorUnit);
+
+  useEffect(() => {
+    fetch("/api/free-shipping-threshold")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && typeof data.threshold === "number") {
+          setFreeShippingThreshold(data.threshold);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch("/api/payment-methods")
@@ -108,13 +121,6 @@ export default function CheckoutPage() {
       })
       .catch(() => {});
   }, []);
-
-  useEffect(() => {
-    if (step === 2 && rates.length > 0 && !selectedRate) {
-      handleSelectRate(rates[0].rate_id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, rates.length]);
 
   function updateAddress(field: keyof ContactAddress, value: string) {
     setAddress((a) => ({ ...a, [field]: value }));
@@ -149,7 +155,6 @@ export default function CheckoutPage() {
   }
 
   async function handleSelectRate(rateId: string) {
-    setSelectingRate(true);
     setError(null);
     try {
       const response = await fetch("/api/cart/shipping-rate", {
@@ -164,10 +169,15 @@ export default function CheckoutPage() {
       setCartData(data);
     } catch (err: any) {
       setError(err.message || "Unable to select shipping method");
-    } finally {
-      setSelectingRate(false);
     }
   }
+
+  useEffect(() => {
+    if (step === 2 && rates.length > 0 && !selectedRate) {
+      handleSelectRate(rates[0].rate_id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, rates.length]);
 
   async function handlePlaceOrder() {
     setError(null);
@@ -196,7 +206,7 @@ export default function CheckoutPage() {
         paymentMethod,
         paymentMethodTitle: paymentMethods.find((m) => m.id === paymentMethod)?.title || paymentMethod,
         paymentFee: selectedPaymentFee,
-        shippingRateName: selectedRate?.name,
+        freeShipping: freeShippingReached,
       });
       setOrderResult(data);
       clearCart();
@@ -239,10 +249,11 @@ export default function CheckoutPage() {
                 <p>{orderSnapshot.address.address_1}{orderSnapshot.address.address_2 ? `, ${orderSnapshot.address.address_2}` : ""}</p>
                 <p>{orderSnapshot.address.city}, {orderSnapshot.address.state} {orderSnapshot.address.postcode}</p>
                 <p>{orderSnapshot.address.email} &middot; {orderSnapshot.address.phone}</p>
-                {orderSnapshot.shippingRateName && <p className="pt-2 text-ink">Shipping: {orderSnapshot.shippingRateName}</p>}
+                <p className="pt-2 text-ink">
+                  Shipping: {orderSnapshot.freeShipping ? "Free" : orderSnapshot.paymentFee > 0 ? formatMoney(orderSnapshot.paymentFee, 0, snapPrefix) : "Free"}
+                </p>
                 <p className="text-ink">
                   Payment: {orderSnapshot.paymentMethodTitle}
-                  {orderSnapshot.paymentFee > 0 && ` (+${formatMoney(orderSnapshot.paymentFee, 0, snapPrefix)} fee)`}
                 </p>
               </div>
             </div>
@@ -390,41 +401,6 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {needsShipping && (
-                    <div className="rounded-3xl border border-line bg-white p-6">
-                      <h2 className="font-display text-xl italic text-ink">Shipping Method</h2>
-                      {rates.length === 0 ? (
-                        <p className="mt-3 text-sm text-ink-soft">No shipping methods available for this address.</p>
-                      ) : (
-                        <div className="mt-4 space-y-3">
-                          {rates.map((rate) => (
-                            <label
-                              key={rate.rate_id}
-                              className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 text-sm transition ${
-                                rate.selected ? "border-purple-400 bg-purple-50" : "border-line"
-                              }`}
-                            >
-                              <span className="flex items-center gap-3">
-                                <input
-                                  type="radio"
-                                  name="shipping_rate"
-                                  checked={rate.selected}
-                                  onChange={() => handleSelectRate(rate.rate_id)}
-                                  disabled={selectingRate}
-                                  className="h-4 w-4 text-purple-600 focus:ring-purple-400"
-                                />
-                                <span className="text-ink">{rate.name}</span>
-                              </span>
-                              <span className="font-medium text-ink">
-                                {Number(rate.price) === 0 ? "Free" : formatMoney(rate.price, minorUnit, prefix)}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
                   <div className="rounded-3xl border border-line bg-white p-6">
                     <h2 className="font-display text-xl italic text-ink">Payment Method</h2>
                     <div className="mt-4 space-y-3">
@@ -446,7 +422,9 @@ export default function CheckoutPage() {
                             <span className="text-ink">{method.title}</span>
                           </span>
                           {method.fee > 0 && (
-                            <span className="text-xs text-ink-soft">+{formatMoney(method.fee, 0, prefix)} fee</span>
+                            <span className="text-xs text-ink-soft">
+                              {freeShippingReached ? "Free shipping applied" : `+${formatMoney(method.fee, 0, prefix)} delivery`}
+                            </span>
                           )}
                         </label>
                       ))}
@@ -506,11 +484,13 @@ export default function CheckoutPage() {
                   const qty = item.quantity?.value ?? item.quantity ?? 1;
                   return (
                     <div key={item.key} className="flex items-center gap-3">
-                      <div className="relative h-14 w-12 shrink-0 overflow-hidden rounded-xl bg-purple-50">
-                        {image && (
-                          <Image src={image.src} alt={image.alt || item.name} fill sizes="60px" className="object-cover" />
-                        )}
-                        <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-ink text-[10px] font-medium text-white">
+                      <div className="relative h-14 w-12 shrink-0">
+                        <div className="absolute inset-0 overflow-hidden rounded-xl bg-purple-50">
+                          {image && (
+                            <Image src={image.src} alt={image.alt || item.name} fill sizes="60px" className="object-contain" />
+                          )}
+                        </div>
+                        <span className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-ink text-[10px] font-medium text-white">
                           {qty}
                         </span>
                       </div>
@@ -534,11 +514,11 @@ export default function CheckoutPage() {
                     <span className="text-ink">
                       {step < 2
                         ? "—"
-                        : selectedRate
-                        ? Number(selectedRate.price) === 0
-                          ? "Free"
-                          : formatMoney(selectedRate.price, minorUnit, prefix)
-                        : "—"}
+                        : freeShippingReached
+                        ? "Free"
+                        : selectedPaymentFee > 0
+                        ? formatMoney(selectedPaymentFee, 0, prefix)
+                        : "Free"}
                     </span>
                   </div>
                 )}
@@ -555,12 +535,6 @@ export default function CheckoutPage() {
                         <span className="text-ink">{formatMoney(totals?.total_tax, minorUnit, prefix)}</span>
                       </div>
                     )}
-                {step === 2 && selectedPaymentFee > 0 && (
-                  <div className="flex items-center justify-between text-ink-soft">
-                    <span>{paymentMethods.find((m) => m.id === paymentMethod)?.title || "Payment"} Fee</span>
-                    <span className="text-ink">{formatMoney(selectedPaymentFee, 0, prefix)}</span>
-                  </div>
-                )}
               </div>
 
               <div className="mt-5 flex items-center justify-between border-t border-line pt-5">

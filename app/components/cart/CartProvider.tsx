@@ -13,6 +13,9 @@ type CartContextType = {
   clearCart: () => void;
   loading: boolean;
   updatingKey: string | null;
+  drawerOpen: boolean;
+  openDrawer: () => void;
+  closeDrawer: () => void;
 };
 
 const CartContext = createContext<CartContextType | null>(null);
@@ -21,6 +24,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   async function refreshCart() {
     const res = await fetch("/api/cart", { cache: "no-store" });
@@ -44,6 +48,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         throw new Error(data?.message || data?.error || "Unable to add product");
       }
       setCart(data);
+      setDrawerOpen(true);
     } finally {
       setLoading(false);
     }
@@ -100,6 +105,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         clearCart: () => setCart(null),
         loading,
         updatingKey,
+        drawerOpen,
+        openDrawer: () => setDrawerOpen(true),
+        closeDrawer: () => setDrawerOpen(false),
       }}
     >
       {children}

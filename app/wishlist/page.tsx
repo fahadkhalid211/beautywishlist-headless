@@ -1,13 +1,35 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useWishlist } from "@/app/components/wishlist/WishlistProvider";
 import { useCart } from "@/app/components/cart/CartProvider";
+import { getFriendlyErrorMessage } from "@/lib/friendlyError";
 
 export default function WishlistPage() {
   const { items, remove, hydrated } = useWishlist();
   const { addItem } = useCart();
+  const [errors, setErrors] = useState<Record<number, string>>({});
+  const [addingId, setAddingId] = useState<number | null>(null);
+
+  async function handleAddToCart(id: number, inStock: boolean | undefined) {
+    setErrors((e) => ({ ...e, [id]: "" }));
+
+    if (inStock === false) {
+      setErrors((e) => ({ ...e, [id]: "This product is out of stock — try another one!" }));
+      return;
+    }
+
+    setAddingId(id);
+    try {
+      await addItem(id);
+    } catch (err: any) {
+      setErrors((e) => ({ ...e, [id]: getFriendlyErrorMessage(err?.message, "cart") }));
+    } finally {
+      setAddingId(null);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-bg">
@@ -36,47 +58,62 @@ export default function WishlistPage() {
 
         {hydrated && items.length > 0 && (
           <div className="mt-10 grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
-            {items.map((item) => (
-              <div key={item.id} className="group relative">
-                <Link href={`/product/${item.slug}`} className="block">
-                  <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-purple-50">
-                    {item.image && (
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        sizes="(max-width: 768px) 50vw, 25vw"
-                        className="object-cover transition duration-500 group-hover:scale-105"
-                      />
-                    )}
-                  </div>
-                  <h2 className="mt-3 line-clamp-2 text-sm font-medium text-ink">{item.name}</h2>
-                  <p className="mt-1 text-sm font-semibold text-purple-700">
-                    {item.currency_prefix}{(Number(item.price) / 100).toLocaleString("en-PK")}
-                  </p>
-                </Link>
+            {items.map((item) => {
+              const minorUnit = item.currency_minor_unit ?? 2;
+              const displayPrice = Number(item.price) / Math.pow(10, minorUnit);
+              const outOfStock = item.is_in_stock === false;
 
-                <div className="mt-3 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => addItem(item.id)}
-                    className="flex-1 rounded-full bg-purple-600 py-2 text-xs font-medium text-white transition hover:bg-purple-700"
-                  >
-                    Add to Cart
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Remove from wishlist"
-                    onClick={() => remove(item.id)}
-                    className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-line text-ink-soft transition hover:border-rose-300 hover:text-rose-500"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M18 6 6 18M6 6l12 12" />
-                    </svg>
-                  </button>
+              return (
+                <div key={item.id} className="group relative">
+                  <Link href={`/product/${item.slug}`} className="block">
+                    <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-purple-50">
+                      {item.image && (
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          sizes="(max-width: 768px) 50vw, 25vw"
+                          className="object-contain transition duration-500 group-hover:scale-105"
+                        />
+                      )}
+                      {outOfStock && (
+                        <span className="absolute left-3 top-3 rounded-full bg-ink px-3 py-1 text-xs font-medium text-white">
+                          Sold Out
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="mt-3 line-clamp-2 text-sm font-medium text-ink">{item.name}</h2>
+                    <p className="mt-1 text-sm font-semibold text-purple-700">
+                      {item.currency_prefix}{displayPrice.toLocaleString("en-PK")}
+                    </p>
+                  </Link>
+
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleAddToCart(item.id, item.is_in_stock)}
+                      disabled={addingId === item.id}
+                      className="flex-1 rounded-full bg-purple-600 py-2 text-xs font-medium text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {addingId === item.id ? "Adding..." : outOfStock ? "Sold Out" : "Add to Cart"}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Remove from wishlist"
+                      onClick={() => remove(item.id)}
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-line text-ink-soft transition hover:border-rose-300 hover:text-rose-500"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  {errors[item.id] && (
+                    <p className="mt-1.5 rounded-lg bg-rose-50 px-2 py-1 text-[11px] text-rose-600">{errors[item.id]}</p>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

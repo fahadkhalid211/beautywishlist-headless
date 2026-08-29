@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     image: p.images?.[0]?.src ?? null,
     price: p.prices.price,
     currency_prefix: p.prices.currency_prefix,
+    currency_minor_unit: p.prices.currency_minor_unit ?? 2,
   }));
 
   return NextResponse.json({ products: top, total });

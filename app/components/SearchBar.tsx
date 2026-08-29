@@ -79,7 +79,7 @@ export default function SearchBar({ className = "" }: { className?: string }) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm text-ink">{p.name}</p>
-                <p className="text-xs font-medium text-purple-700">{p.currency_prefix}{(Number(p.price) / 100).toLocaleString("en-PK")}</p>
+                <p className="text-xs font-medium text-purple-700">{p.currency_prefix}{(Number(p.price) / Math.pow(10, p.currency_minor_unit ?? 2)).toLocaleString("en-PK")}</p>
               </div>
             </Link>
           ))}

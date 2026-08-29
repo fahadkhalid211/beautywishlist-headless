@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProduct, getProductsByCategory } from "@/lib/woocommerce";
+import { getPriceValue } from "@/lib/money";
 import AddToCart from "@/app/components/cart/AddToCart";
 import WishlistButton from "@/app/components/wishlist/WishlistButton";
 import ProductCard from "@/app/components/ProductCard";
@@ -57,11 +58,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <p className="mt-5 flex items-baseline gap-3">
               {product.on_sale && product.prices.regular_price && (
                 <span className="text-lg text-ink-soft line-through">
-                  {product.prices.currency_prefix}{(Number(product.prices.regular_price) / 100).toLocaleString("en-PK")}
+                  {product.prices.currency_prefix}{getPriceValue(product.prices, "regular_price").toLocaleString("en-PK")}
                 </span>
               )}
               <span className="text-2xl font-semibold text-purple-700">
-                {product.prices.currency_prefix}{(Number(product.prices.price) / 100).toLocaleString("en-PK")}
+                {product.prices.currency_prefix}{getPriceValue(product.prices, "price").toLocaleString("en-PK")}
               </span>
             </p>
 
@@ -69,7 +70,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <div className="mt-5 text-sm leading-7 text-ink-soft" dangerouslySetInnerHTML={{ __html: product.short_description }} />
             )}
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="flex-1">
                 <AddToCart
                   productId={product.id}
@@ -86,6 +87,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                     image: images[0]?.src ?? null,
                     price: product.prices.price,
                     currency_prefix: product.prices.currency_prefix,
+                    currency_minor_unit: product.prices.currency_minor_unit ?? 2,
+                    is_in_stock: product.is_in_stock,
                   }}
                   variant="full"
                 />

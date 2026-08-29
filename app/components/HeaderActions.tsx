@@ -6,7 +6,7 @@ import { useCart } from "./cart/CartProvider";
 import { useWishlist } from "./wishlist/WishlistProvider";
 
 export default function HeaderActions() {
-  const { itemCount } = useCart();
+  const { itemCount, openDrawer } = useCart();
   const { items: wishlistItems } = useWishlist();
   const [bump, setBump] = useState(false);
   const prevCount = useRef(itemCount);
@@ -51,8 +51,9 @@ export default function HeaderActions() {
         )}
       </Link>
 
-      <Link
-        href="/cart"
+      <button
+        type="button"
+        onClick={openDrawer}
         className={`flex items-center gap-2 rounded-full bg-purple-600 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-purple-700 md:px-4 ${
           bump ? "scale-110" : "scale-100"
         }`}
@@ -63,7 +64,7 @@ export default function HeaderActions() {
         {itemCount > 0 && (
           <span className="grid h-5 w-5 place-items-center rounded-full bg-white text-xs font-semibold text-purple-700">{itemCount}</span>
         )}
-      </Link>
+      </button>
     </div>
   );
 }

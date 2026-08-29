@@ -3,6 +3,7 @@ import { Fraunces, Manrope } from "next/font/google";
 import "./globals.css";
 import Header from "./components/Header";
 import { CartProvider } from "./components/cart/CartProvider";
+import CartDrawer from "./components/cart/CartDrawer";
 import { AuthProvider } from "./components/account/AuthProvider";
 import { WishlistProvider } from "./components/wishlist/WishlistProvider";
 import Footer from "./components/Footer";
@@ -37,6 +38,7 @@ export default function RootLayout({
               <Header />
               {children}
               <Footer />
+              <CartDrawer />
             </CartProvider>
           </WishlistProvider>
         </AuthProvider>
