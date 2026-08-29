@@ -16,6 +16,28 @@ async function request<T>(endpoint: string): Promise<T> {
   return response.json();
 }
 
+type PaginatedResult<T> = {
+  items: T[];
+  total: number;
+  totalPages: number;
+};
+
+async function requestPaginated<T>(endpoint: string): Promise<PaginatedResult<T>> {
+  const response = await fetch(`${API}${endpoint}`, {
+    next: { revalidate: 60 },
+  });
+
+  if (!response.ok) {
+    throw new Error(`WooCommerce API failed: ${response.status}`);
+  }
+
+  const items = await response.json();
+  const total = Number(response.headers.get("X-WP-Total") ?? items.length);
+  const totalPages = Number(response.headers.get("X-WP-TotalPages") ?? 1);
+
+  return { items, total, totalPages };
+}
+
 export async function getProducts(
   page = 1,
   perPage = 24
@@ -39,25 +61,32 @@ export async function getCategories() {
   );
 }
 
+/**
+ * Fetches the full category list and matches by slug in JS rather than
+ * relying on the Store API's own ?slug= filter on this endpoint, which
+ * doesn't reliably filter (it silently falls back to returning every
+ * category, so categories[0] always resolved to the same first category
+ * regardless of the requested slug — the cause of every /category/[slug]
+ * page showing the same single product).
+ */
 export async function getCategory(slug: string) {
-  const categories = await request<any[]>(
-    `/products/categories?slug=${encodeURIComponent(slug)}`
-  );
-
-  return categories[0] ?? null;
+  const categories = await getCategories();
+  return categories.find((c: any) => c.slug === slug) ?? null;
 }
 
 export async function getProductsByCategory(
   categoryId: number,
-  page = 1
+  page = 1,
+  perPage = 24
 ) {
-  return request<any[]>(
-    `/products?category=${categoryId}&page=${page}&per_page=24`
+  return requestPaginated<any>(
+    `/products?category=${categoryId}&page=${page}&per_page=${perPage}`
   );
 }
 
 export async function searchProducts(params: {
   page?: number;
+  perPage?: number;
   search?: string;
   category?: string;
   minPrice?: string;
@@ -74,7 +103,7 @@ export async function searchProducts(params: {
     String(params.page ?? 1)
   );
 
-  query.set("per_page", "24");
+  query.set("per_page", String(params.perPage ?? 24));
 
   if (params.search) {
     query.set("search", params.search);
@@ -117,7 +146,7 @@ export async function searchProducts(params: {
     );
   }
 
-  return request<any[]>(
+  return requestPaginated<any>(
     `/products?${query.toString()}`
   );
 }

@@ -1,38 +1,63 @@
 import { notFound } from "next/navigation";
-import { getCategory, getProductsByCategory } from "@/lib/woocommerce";
-import ProductCard from "@/app/components/ProductCard";
+import { getCategory, getCategories, searchProducts } from "@/lib/woocommerce";
+import ProductListing from "@/app/components/ProductListing";
+
+type SearchParams = {
+  min_price?: string;
+  max_price?: string;
+  sort?: string;
+  sale?: string;
+  stock?: string;
+  page?: string;
+};
 
 export default async function CategoryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const { slug } = await params;
-  const category = await getCategory(slug);
+  const query = await searchParams;
+  const currentPage = Math.max(1, Number(query.page) || 1);
 
+  const category = await getCategory(slug);
   if (!category) notFound();
 
-  const products = await getProductsByCategory(category.id);
+  let orderby = "date";
+  let order = "desc";
+  if (query.sort === "price-low") { orderby = "price"; order = "asc"; }
+  if (query.sort === "price-high") { orderby = "price"; order = "desc"; }
+  if (query.sort === "newest") { orderby = "date"; order = "desc"; }
+  if (query.sort === "name") { orderby = "title"; order = "asc"; }
+
+  const [{ items: products, total, totalPages }, categories] = await Promise.all([
+    searchProducts({
+      category: String(category.id),
+      page: currentPage,
+      minPrice: query.min_price,
+      maxPrice: query.max_price,
+      orderby,
+      order,
+      onSale: query.sale === "true",
+      stockStatus: query.stock === "true" ? "instock" : undefined,
+    }),
+    getCategories(),
+  ]);
 
   return (
-    <main className="min-h-screen bg-bg">
-      <section className="mx-auto max-w-7xl px-6 py-16">
-        <p className="text-xs uppercase tracking-widest text-purple-600">Category</p>
-        <h1 className="mt-3 font-display text-5xl italic tracking-tight text-ink">{category.name}</h1>
-
-        {category.description && (
-          <div
-            className="mt-5 max-w-2xl text-sm leading-7 text-ink-soft"
-            dangerouslySetInnerHTML={{ __html: category.description }}
-          />
-        )}
-
-        <div className="mt-12 grid grid-cols-2 gap-x-5 gap-y-10 md:grid-cols-3 lg:grid-cols-4">
-          {products.map((product: any) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
-    </main>
+    <ProductListing
+      title={category.name}
+      description={category.description}
+      products={products}
+      categories={categories}
+      activeCategorySlug={slug}
+      basePath={`/category/${slug}`}
+      filters={query}
+      currentPage={currentPage}
+      totalPages={totalPages}
+      totalProducts={total}
+    />
   );
 }

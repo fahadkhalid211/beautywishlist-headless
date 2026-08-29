@@ -13,7 +13,8 @@ export default function SortSelect() {
     } else {
       params.delete("sort");
     }
-    router.push(`/shop?${params.toString()}`);
+    params.delete("page");
+    router.push(`?${params.toString()}`);
   }
 
   return (

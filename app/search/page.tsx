@@ -8,7 +8,7 @@ export default async function SearchPage({
 }) {
   const params = await searchParams;
   const query = params.q?.trim() || "";
-  const products = query ? await searchProducts({ search: query }) : [];
+  const products = query ? (await searchProducts({ search: query })).items : [];
 
   return (
     <main className="min-h-screen bg-bg">
@@ -31,7 +31,7 @@ export default async function SearchPage({
         </form>
 
         {query && (
-          <p className="mb-8 text-sm text-ink-soft">{products.length} results for "{query}"</p>
+          <p className="mb-8 text-sm text-ink-soft">{products.length} results for &quot;{query}&quot;</p>
         )}
 
         {!query ? (

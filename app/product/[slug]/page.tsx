@@ -13,7 +13,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   if (!product) notFound();
   const category = product.categories?.[0];
   const related = category
-    ? (await getProductsByCategory(category.id)).filter((p: any) => p.id !== product.id).slice(0, 10)
+    ? (await getProductsByCategory(category.id)).items.filter((p: any) => p.id !== product.id).slice(0, 10)
     : [];
   
 
@@ -68,8 +68,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <div className="mt-5 text-sm leading-7 text-ink-soft" dangerouslySetInnerHTML={{ __html: product.short_description }} />
             )}
 
-                        <div className="mt-6">
-              <AddToCart productId={product.id} inStock={product.is_in_stock} />
+            <div className="mt-6">
+              <AddToCart
+                productId={product.id}
+                inStock={product.is_in_stock}
+                maxQuantity={product.manage_stock && typeof product.stock_quantity === "number" ? product.stock_quantity : undefined}
+              />
             </div>
 
                         <div className="mt-8 grid grid-cols-2 gap-4 border-t border-line pt-8 sm:grid-cols-4">

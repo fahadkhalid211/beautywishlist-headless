@@ -7,42 +7,51 @@ import QuantitySelector from "@/app/components/QuantitySelector";
 export default function AddToCart({
   productId,
   inStock = true,
+  maxQuantity,
   compact = false,
 }: {
   productId: number;
   inStock?: boolean;
+  maxQuantity?: number;
   compact?: boolean;
 }) {
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
+  const [error, setError] = useState<string | null>(null);
 
   async function handleAdd(e?: React.MouseEvent) {
     e?.preventDefault();
     e?.stopPropagation();
     if (!inStock || status === "loading") return;
     setStatus("loading");
+    setError(null);
     try {
       await addItem(productId, quantity);
       setStatus("done");
       setTimeout(() => setStatus("idle"), 1500);
-    } catch {
+    } catch (err: any) {
       setStatus("idle");
+      setError(err?.message || "Unable to add to cart");
+      setTimeout(() => setError(null), 4000);
     }
   }
 
   if (compact) {
     return (
-      <div className="flex items-center gap-2">
-        <QuantitySelector quantity={quantity} onChange={setQuantity} size="sm" />
-        <button
-          type="button"
-          onClick={handleAdd}
-          disabled={!inStock || status === "loading"}
-          className="flex-1 rounded-full bg-purple-600 py-2 text-xs font-medium text-white shadow-lg shadow-purple-900/20 transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-ink/40"
-        >
-          {status === "loading" ? "Adding..." : status === "done" ? "Added ✓" : !inStock ? "Sold Out" : "Add to Cart"}
-        </button>
+      <div>
+        <div className="flex items-center gap-2">
+          <QuantitySelector quantity={quantity} onChange={setQuantity} size="sm" max={maxQuantity} />
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={!inStock || status === "loading"}
+            className="flex-1 rounded-full bg-purple-600 py-2 text-xs font-medium text-white shadow-lg shadow-purple-900/20 transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-ink/40"
+          >
+            {status === "loading" ? "Adding..." : status === "done" ? "Added ✓" : !inStock ? "Sold Out" : "Add to Cart"}
+          </button>
+        </div>
+        {error && <p className="mt-1.5 rounded-lg bg-rose-50 px-2 py-1 text-[11px] text-rose-600">{error}</p>}
       </div>
     );
   }
@@ -51,7 +60,7 @@ export default function AddToCart({
     <div>
       <div className="mb-4">
         <p className="mb-3 text-sm font-medium text-ink">Quantity</p>
-        <QuantitySelector quantity={quantity} onChange={setQuantity} />
+        <QuantitySelector quantity={quantity} onChange={setQuantity} max={maxQuantity} />
       </div>
       <button
         type="button"
@@ -61,6 +70,7 @@ export default function AddToCart({
       >
         {status === "loading" ? "Adding..." : status === "done" ? "Added to cart ✓" : !inStock ? "Sold Out" : "Add to Cart"}
       </button>
+      {error && <p className="mt-2 rounded-xl bg-rose-50 px-3 py-2 text-xs text-rose-600">{error}</p>}
     </div>
   );
 }

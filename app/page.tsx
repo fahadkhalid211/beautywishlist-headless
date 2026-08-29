@@ -25,7 +25,7 @@ export default async function Home() {
 
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-2 md:gap-8">
           <div className="text-center md:text-left">
-            <p className="text-xs uppercase tracking-[0.3em] text-purple-600">New season edit</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-purple-600">New Arrivals</p>
             <h1 className="mt-4 font-display text-5xl italic tracking-tight text-ink md:text-6xl">
               Skincare that feels like a little luxury
             </h1>
@@ -33,7 +33,7 @@ export default async function Home() {
               Curated cosmetics and skincare, picked for glow, not gimmicks.
             </p>
             <Link href="/shop" className="mt-8 inline-block rounded-full bg-purple-600 px-8 py-4 text-sm font-medium text-white transition hover:bg-purple-700">
-              Shop the Edit
+              Shop Now
             </Link>
           </div>
 

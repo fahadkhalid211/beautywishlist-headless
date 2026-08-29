@@ -2,14 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 import Stars from "@/app/components/StarRating";
-import { useCart } from "@/app/components/cart/CartProvider";
 import AddToCart from "@/app/components/cart/AddToCart";
 export default function ProductCard({ product }: { product: any }) {
-  const { addItem } = useCart();
-  const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
-
   const image = product.images?.[0];
   const price = Number(product.prices.price) / 100;
   const regular = product.prices.regular_price ? Number(product.prices.regular_price) / 100 : null;
@@ -17,20 +12,6 @@ export default function ProductCard({ product }: { product: any }) {
   const rating = Number(product.average_rating) || 0;
   const reviewCount = product.review_count ?? 0;
   const discount = product.on_sale && regular ? Math.round(100 - (price / regular) * 100) : null;
-
-  async function handleAdd(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (status === "loading" || !product.is_in_stock) return;
-    setStatus("loading");
-    try {
-      await addItem(product.id);
-      setStatus("done");
-      setTimeout(() => setStatus("idle"), 1500);
-    } catch {
-      setStatus("idle");
-    }
-  }
 
   return (
     <div className="group relative">
@@ -67,7 +48,12 @@ export default function ProductCard({ product }: { product: any }) {
           </button>
 
                     <div className="absolute inset-x-3 bottom-3 translate-y-2 opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-            <AddToCart productId={product.id} inStock={product.is_in_stock} compact />
+            <AddToCart
+              productId={product.id}
+              inStock={product.is_in_stock}
+              maxQuantity={product.manage_stock && typeof product.stock_quantity === "number" ? product.stock_quantity : undefined}
+              compact
+            />
           </div>
         </div>
 

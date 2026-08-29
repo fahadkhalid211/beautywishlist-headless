@@ -19,12 +19,14 @@ export default function NavMenu({ items }: { items: MenuItem[] }) {
           </Link>
 
           {item.children.length > 0 && (
-            <div className="invisible absolute left-0 top-full z-50 mt-3 w-56 rounded-2xl border border-line bg-white p-2 opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100">
-              {item.children.map((child) => (
-                <Link key={child.id} href={toPath(child.url)} className="block rounded-xl px-3 py-2 text-xs font-normal normal-case text-ink-soft hover:bg-purple-50 hover:text-purple-700">
-                  {child.title}
-                </Link>
-              ))}
+            <div className="invisible absolute left-0 top-full z-50 w-56 pt-3 opacity-0 transition group-hover:visible group-hover:opacity-100">
+              <div className="rounded-2xl border border-line bg-white p-2 shadow-xl">
+                {item.children.map((child) => (
+                  <Link key={child.id} href={toPath(child.url)} className="block rounded-xl px-3 py-2 text-xs font-normal normal-case text-ink-soft hover:bg-purple-50 hover:text-purple-700">
+                    {child.title}
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
         </div>

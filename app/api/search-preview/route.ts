@@ -5,8 +5,8 @@ export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim() || "";
   if (!q) return NextResponse.json({ products: [], total: 0 });
 
-  const products = await searchProducts({ search: q });
-  const top = products.slice(0, 5).map((p: any) => ({
+  const { items, total } = await searchProducts({ search: q });
+  const top = items.slice(0, 5).map((p: any) => ({
     id: p.id,
     slug: p.slug,
     name: p.name,
@@ -15,5 +15,5 @@ export async function GET(request: NextRequest) {
     currency_prefix: p.prices.currency_prefix,
   }));
 
-  return NextResponse.json({ products: top, total: products.length });
+  return NextResponse.json({ products: top, total });
 }
