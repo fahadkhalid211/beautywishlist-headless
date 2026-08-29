@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "./components/Header";
 import { CartProvider } from "./components/cart/CartProvider";
 import { AuthProvider } from "./components/account/AuthProvider";
+import { WishlistProvider } from "./components/wishlist/WishlistProvider";
 import Footer from "./components/Footer";
 
 const fraunces = Fraunces({
@@ -31,11 +32,13 @@ export default function RootLayout({
     <html lang="en" className={`${fraunces.variable} ${manrope.variable}`}>
       <body>
         <AuthProvider>
-          <CartProvider>
-            <Header />
-            {children}
-            <Footer />
-          </CartProvider>
+          <WishlistProvider>
+            <CartProvider>
+              <Header />
+              {children}
+              <Footer />
+            </CartProvider>
+          </WishlistProvider>
         </AuthProvider>
       </body>
     </html>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProduct, getProductsByCategory } from "@/lib/woocommerce";
 import AddToCart from "@/app/components/cart/AddToCart";
+import WishlistButton from "@/app/components/wishlist/WishlistButton";
 import ProductCard from "@/app/components/ProductCard";
 import Stars from "@/app/components/StarRating";
 import Gallery from "@/app/components/Gallery";
@@ -68,12 +69,27 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <div className="mt-5 text-sm leading-7 text-ink-soft" dangerouslySetInnerHTML={{ __html: product.short_description }} />
             )}
 
-            <div className="mt-6">
-              <AddToCart
-                productId={product.id}
-                inStock={product.is_in_stock}
-                maxQuantity={product.manage_stock && typeof product.stock_quantity === "number" ? product.stock_quantity : undefined}
-              />
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <div className="flex-1">
+                <AddToCart
+                  productId={product.id}
+                  inStock={product.is_in_stock}
+                  maxQuantity={product.manage_stock && typeof product.stock_quantity === "number" ? product.stock_quantity : undefined}
+                />
+              </div>
+              <div className="sm:w-48">
+                <WishlistButton
+                  item={{
+                    id: product.id,
+                    slug: product.slug,
+                    name: product.name,
+                    image: images[0]?.src ?? null,
+                    price: product.prices.price,
+                    currency_prefix: product.prices.currency_prefix,
+                  }}
+                  variant="full"
+                />
+              </div>
             </div>
 
                         <div className="mt-8 grid grid-cols-2 gap-4 border-t border-line pt-8 sm:grid-cols-4">

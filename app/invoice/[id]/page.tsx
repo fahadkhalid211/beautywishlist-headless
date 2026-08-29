@@ -136,7 +136,8 @@ export default function InvoicePage() {
           </div>
 
           <div className="py-6">
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[480px] text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-soft">
                   <th className="pb-2 font-medium">Item</th>
@@ -168,6 +169,7 @@ export default function InvoicePage() {
                 ))}
               </tbody>
             </table>
+            </div>
 
             <div className="ml-auto mt-4 w-full max-w-xs space-y-2 text-sm">
               <div className="flex items-center justify-between text-ink-soft">

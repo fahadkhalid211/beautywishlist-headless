@@ -40,13 +40,13 @@ export default function AddToCart({
   if (compact) {
     return (
       <div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-1.5">
           <QuantitySelector quantity={quantity} onChange={setQuantity} size="sm" max={maxQuantity} />
           <button
             type="button"
             onClick={handleAdd}
             disabled={!inStock || status === "loading"}
-            className={`flex-1 rounded-full bg-purple-600 py-2 text-xs font-medium text-white shadow-lg shadow-purple-900/20 transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-ink/40 ${
+            className={`w-full rounded-full bg-purple-600 py-2 text-xs font-medium text-white shadow-lg shadow-purple-900/20 transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-ink/40 ${
               status === "done" ? "scale-105 bg-emerald-500 hover:bg-emerald-500" : ""
             }`}
           >

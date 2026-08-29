@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Stars from "@/app/components/StarRating";
 import AddToCart from "@/app/components/cart/AddToCart";
+import WishlistButton from "@/app/components/wishlist/WishlistButton";
 export default function ProductCard({ product }: { product: any }) {
   const image = product.images?.[0];
   const price = Number(product.prices.price) / 100;
@@ -36,16 +37,18 @@ export default function ProductCard({ product }: { product: any }) {
             ) : null}
           </div>
 
-          <button
-            type="button"
-            aria-label="Add to wishlist"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink-soft transition hover:text-purple-600"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20.8 4.6a5 5 0 0 0-7.1 0L12 6.3l-1.7-1.7a5 5 0 1 0-7.1 7.1L12 20.3l8.8-8.6a5 5 0 0 0 0-7.1Z" />
-            </svg>
-          </button>
+          <div className="absolute right-3 top-3">
+            <WishlistButton
+              item={{
+                id: product.id,
+                slug: product.slug,
+                name: product.name,
+                image: image?.src ?? null,
+                price: product.prices.price,
+                currency_prefix: prefix,
+              }}
+            />
+          </div>
 
                     <div className="absolute inset-x-3 bottom-3 translate-y-2 opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
             <AddToCart
