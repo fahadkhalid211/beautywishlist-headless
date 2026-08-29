@@ -19,7 +19,7 @@ export default async function Header() {
           <MobileMenu menu={menu} />
 
           <Link href="/" className="shrink-0 font-display text-xl italic text-purple-700 md:text-2xl">
-            Beauty Wishlist
+            Beauty Wishlist by HS
           </Link>
 
           <div className="hidden flex-1 md:block">
