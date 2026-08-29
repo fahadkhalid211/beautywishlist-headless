@@ -1,13 +1,42 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { getProduct, getProductsByCategory } from "@/lib/woocommerce";
 import { getPriceValue } from "@/lib/money";
+import { stripHtml } from "@/lib/seo";
 import AddToCart from "@/app/components/cart/AddToCart";
 import WishlistButton from "@/app/components/wishlist/WishlistButton";
 import ProductCard from "@/app/components/ProductCard";
 import Stars from "@/app/components/StarRating";
 import Gallery from "@/app/components/Gallery";
 import Carousel from "@/app/components/Carousel";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await getProduct(slug);
+  if (!product) return {};
+
+  const description = stripHtml(product.short_description || product.description);
+  const image = product.images?.[0]?.src;
+
+  return {
+    title: product.name,
+    description,
+    alternates: { canonical: `/product/${product.slug}` },
+    openGraph: {
+      title: product.name,
+      description,
+      type: "website",
+      images: image ? [{ url: image, alt: product.images?.[0]?.alt || product.name }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.name,
+      description,
+      images: image ? [image] : undefined,
+    },
+  };
+}
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -23,8 +52,40 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const reviewCount = product.review_count ?? 0;
   const images = product.images ?? [];
 
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    image: images.map((img: any) => img.src),
+    description: stripHtml(product.short_description || product.description, 500),
+    sku: product.sku || undefined,
+    brand: category ? { "@type": "Brand", name: category.name } : undefined,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: product.prices?.currency_code || "PKR",
+      price: getPriceValue(product.prices, "price").toFixed(2),
+      availability: product.is_in_stock
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      url: `${process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_WP_URL}/product/${product.slug}`,
+    },
+    ...(rating > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: rating,
+            reviewCount: reviewCount || 1,
+          },
+        }
+      : {}),
+  };
+
   return (
     <main className="min-h-screen bg-bg">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <div className="mx-auto max-w-7xl px-6 py-10">
         <nav className="mb-8 flex items-center gap-2 text-xs text-ink-soft">
           <Link href="/" className="hover:text-purple-700">Home</Link>

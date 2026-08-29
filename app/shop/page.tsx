@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { getCategories, searchProducts } from "@/lib/woocommerce";
 import ProductListing from "@/app/components/ProductListing";
+
+export const metadata: Metadata = {
+  title: "Shop",
+  description: "Shop curated Korean skincare and cosmetics at Beauty Wishlist by HS — 100% authentic, picked for glow.",
+  alternates: { canonical: "/shop" },
+};
 
 type SearchParams = {
   min_price?: string;

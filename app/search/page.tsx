@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { searchProducts } from "@/lib/woocommerce";
 import ProductCard from "@/app/components/ProductCard";
+
+export const metadata: Metadata = {
+  title: "Search",
+  robots: { index: false, follow: true },
+};
 
 export default async function SearchPage({
   searchParams,

@@ -50,11 +50,34 @@ export default async function Home() {
 
   const newInProducts = products.slice(0, 8);
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_WP_URL || "";
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Beauty Wishlist by HS",
+    url: siteUrl,
+    sameAs: [],
+  };
+  const webSiteSearchJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Beauty Wishlist by HS",
+    url: siteUrl,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${siteUrl}/search?q={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <main className="min-h-screen bg-bg">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteSearchJsonLd) }} />
       <section className="relative overflow-hidden px-6 pb-16 pt-16 md:pb-24 md:pt-20">
         <div className="blob -left-32 -top-32 h-96 w-96" />
         <div className="blob -right-20 top-10 h-72 w-72 opacity-40" />
+
 
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-2 md:gap-8">
           <div className="text-center md:text-left">

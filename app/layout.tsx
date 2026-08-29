@@ -23,6 +23,7 @@ const manrope = Manrope({
 
 export async function generateMetadata(): Promise<Metadata> {
   const WP_URL = process.env.NEXT_PUBLIC_WP_URL!;
+  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || WP_URL;
   let siteIconUrl: string | undefined;
 
   try {
@@ -36,9 +37,29 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 
   return {
-    title: "Beauty Wishlist by HS",
-    description: "Beauty Wishlist online store",
+    metadataBase: new URL(SITE_URL),
+    title: {
+      default: "Beauty Wishlist by HS",
+      template: "%s | Beauty Wishlist by HS",
+    },
+    description: "Curated Korean skincare and cosmetics — 100% authentic, picked for glow, not gimmicks.",
     icons: siteIconUrl ? { icon: siteIconUrl } : undefined,
+    openGraph: {
+      type: "website",
+      siteName: "Beauty Wishlist by HS",
+      title: "Beauty Wishlist by HS",
+      description: "Curated Korean skincare and cosmetics — 100% authentic, picked for glow, not gimmicks.",
+      locale: "en_US",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "Beauty Wishlist by HS",
+      description: "Curated Korean skincare and cosmetics — 100% authentic, picked for glow, not gimmicks.",
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
   };
 }
 

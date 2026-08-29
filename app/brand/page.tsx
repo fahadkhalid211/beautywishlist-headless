@@ -1,6 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { getCategories } from "@/lib/woocommerce";
+
+export const metadata: Metadata = {
+  title: "All Brands",
+  description: "Browse every brand we carry at Beauty Wishlist by HS, from A to Z.",
+  alternates: { canonical: "/brand" },
+};
 
 export default async function BrandPage() {
   const categories = await getCategories();
