@@ -21,10 +21,26 @@ const manrope = Manrope({
   weight: ["400", "500", "600", "700"],
 });
 
-export const metadata: Metadata = {
-  title: "Beauty Wishlist",
-  description: "Beauty Wishlist online store",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const WP_URL = process.env.NEXT_PUBLIC_WP_URL!;
+  let siteIconUrl: string | undefined;
+
+  try {
+    const res = await fetch(`${WP_URL}/wp-json/`, { next: { revalidate: 3600 } });
+    if (res.ok) {
+      const data = await res.json();
+      siteIconUrl = data?.site_icon_url || undefined;
+    }
+  } catch {
+    // fall back to Next.js's default favicon handling if this fails
+  }
+
+  return {
+    title: "Beauty Wishlist by HS",
+    description: "Beauty Wishlist online store",
+    icons: siteIconUrl ? { icon: siteIconUrl } : undefined,
+  };
+}
 
 export default function RootLayout({
   children,
