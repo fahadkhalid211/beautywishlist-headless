@@ -3,6 +3,7 @@ import { Fraunces, Manrope } from "next/font/google";
 import "./globals.css";
 import Header from "./components/Header";
 import { CartProvider } from "./components/cart/CartProvider";
+import { AuthProvider } from "./components/account/AuthProvider";
 import Footer from "./components/Footer";
 
 const fraunces = Fraunces({
@@ -29,11 +30,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${fraunces.variable} ${manrope.variable}`}>
       <body>
-        <CartProvider>
-          <Header />
-          {children}
-          <Footer />
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <Header />
+            {children}
+            <Footer />
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );
