@@ -31,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
     try {
       const res = await fetch(`${WP_URL}/wp-json/`, {
         next: { revalidate: 3600 },
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(2000),
       });
       if (res.ok) {
         const data = await res.json();

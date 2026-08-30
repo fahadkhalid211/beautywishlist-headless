@@ -1,6 +1,7 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { getProducts, getCategories, searchProducts, getFeaturedProducts, getHomepageImages } from "@/lib/woocommerce";
+import { getCategories, searchProducts, getFeaturedProducts, getHomepageImages, getProducts } from "@/lib/woocommerce";
 import ProductCard from "@/app/components/ProductCard";
 import CategoryCircles from "@/app/components/CategoryCircles";
 import BrandCarousel from "@/app/components/BrandCarousel";
@@ -9,46 +10,29 @@ import BrandSpotlightCards from "@/app/components/BrandSpotlightCards";
 import JourneyBanner from "@/app/components/JourneyBanner";
 
 export default async function Home() {
-  const [products, categories, saleResult, bestSellersResult, featuredProducts, homepageImages] = await Promise.all([
-    getProducts(),
-    getCategories(),
-    searchProducts({ onSale: true, perPage: 12 }),
-    searchProducts({ orderby: "popularity", order: "desc", perPage: 12 }),
+  // Only what the hero (above-the-fold, LCP-critical) needs is awaited here.
+  // Everything else streams in below via Suspense so the initial HTML/CSS/
+  // fonts aren't blocked behind a handful of WooCommerce API calls.
+  const [featuredProducts, homepageImages] = await Promise.all([
     getFeaturedProducts(8),
     getHomepageImages(),
   ]);
 
-  const topCategories = categories
-    .filter((c: any) => c.count > 0)
-    .sort((a: any, b: any) => b.count - a.count)
-    .slice(0, 4);
-
-  const allBrandCategories = categories.filter((c: any) => c.count > 0);
-  const saleProducts = saleResult.items;
-  const bestSellers = bestSellersResult.items;
-
-  // Hero collage + banner backdrop: admin-set images (Settings → Homepage
-  // Images in WordPress) take priority, then featured products, then recent
-  // products as a last resort.
-  const heroSource = featuredProducts.length > 0 ? featuredProducts : products;
-
   const heroImage1 = homepageImages?.hero_image_1
     ? { src: homepageImages.hero_image_1, alt: "Hero banner" }
-    : heroSource[0]?.images?.[0]
-    ? { src: heroSource[0].images[0].src, alt: heroSource[0].images[0].alt || heroSource[0].name }
+    : featuredProducts[0]?.images?.[0]
+    ? { src: featuredProducts[0].images[0].src, alt: featuredProducts[0].images[0].alt || featuredProducts[0].name }
     : null;
 
   const heroImage2 = homepageImages?.hero_image_2
     ? { src: homepageImages.hero_image_2, alt: "Hero banner" }
-    : heroSource[1]?.images?.[0]
-    ? { src: heroSource[1].images[0].src, alt: heroSource[1].images[0].alt || heroSource[1].name }
+    : featuredProducts[1]?.images?.[0]
+    ? { src: featuredProducts[1].images[0].src, alt: featuredProducts[1].images[0].alt || featuredProducts[1].name }
     : null;
 
   const journeyBackdrop = homepageImages?.banner_image
     ? { src: homepageImages.banner_image, alt: "Beauty Wishlist" }
-    : heroSource[3]?.images?.[0] || heroSource[0]?.images?.[0] || products[0]?.images?.[0];
-
-  const newInProducts = products.slice(0, 8);
+    : featuredProducts[3]?.images?.[0] || featuredProducts[0]?.images?.[0];
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_WP_URL || "";
   const websiteJsonLd = {
@@ -77,7 +61,6 @@ export default async function Home() {
       <section className="relative overflow-hidden px-6 pb-16 pt-16 md:pb-24 md:pt-20">
         <div className="blob -left-32 -top-32 h-96 w-96" />
         <div className="blob -right-20 top-10 h-72 w-72 opacity-40" />
-
 
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-2 md:gap-8">
           <div className="text-center md:text-left">
@@ -131,45 +114,129 @@ export default async function Home() {
         </div>
       </section>
 
-      <CategoryCircles categories={topCategories} />
+      <Suspense fallback={<CategorySkeleton />}>
+        <CategorySections />
+      </Suspense>
 
-      <BrandCarousel categories={allBrandCategories} />
+      <Suspense fallback={<CarouselSkeleton />}>
+        <ProductCarousels />
+      </Suspense>
 
-      <ProductCarouselSection
-        eyebrow="Limited Time"
-        title="On Sale Now"
-        products={saleProducts}
-        viewAllHref="/shop?sale=true"
-      />
-
-      <ProductCarouselSection
-        eyebrow="Customer Favorites"
-        title="Best Sellers"
-        products={bestSellers}
-        viewAllHref="/shop?sort=popularity"
-      />
-
-      <BrandSpotlightCards categories={categories} />
+      <Suspense fallback={null}>
+        <BrandSpotlightSection />
+      </Suspense>
 
       <JourneyBanner backgroundImage={journeyBackdrop} />
 
-      <section className="mx-auto max-w-7xl px-6 pb-24">
-        <div className="mb-10 flex items-end justify-between">
-          <h2 className="font-display text-3xl italic text-ink">New In</h2>
-        </div>
-
-        <div className="grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-4">
-          {newInProducts.map((product: any) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-
-        <div className="mt-12 text-center">
-          <Link href="/shop" className="inline-block rounded-full border border-line px-8 py-4 text-sm font-medium text-ink-soft transition hover:border-purple-300 hover:text-purple-700">
-            View All
-          </Link>
-        </div>
-      </section>
+      <Suspense fallback={<GridSkeleton />}>
+        <NewInSection />
+      </Suspense>
     </main>
+  );
+}
+
+async function CategorySections() {
+  const categories = await getCategories();
+  const topCategories = categories
+    .filter((c: any) => c.count > 0)
+    .sort((a: any, b: any) => b.count - a.count)
+    .slice(0, 4);
+  const allBrandCategories = categories.filter((c: any) => c.count > 0);
+
+  return (
+    <>
+      <CategoryCircles categories={topCategories} />
+      <BrandCarousel categories={allBrandCategories} />
+    </>
+  );
+}
+
+async function ProductCarousels() {
+  const [saleResult, bestSellersResult] = await Promise.all([
+    searchProducts({ onSale: true, perPage: 12 }),
+    searchProducts({ orderby: "popularity", order: "desc", perPage: 12 }),
+  ]);
+
+  return (
+    <>
+      <ProductCarouselSection
+        eyebrow="Limited Time"
+        title="On Sale Now"
+        products={saleResult.items}
+        viewAllHref="/shop?sale=true"
+      />
+      <ProductCarouselSection
+        eyebrow="Customer Favorites"
+        title="Best Sellers"
+        products={bestSellersResult.items}
+        viewAllHref="/shop?sort=popularity"
+      />
+    </>
+  );
+}
+
+async function BrandSpotlightSection() {
+  const categories = await getCategories();
+  return <BrandSpotlightCards categories={categories} />;
+}
+
+async function NewInSection() {
+  const products = await getProducts();
+  const newInProducts = products.slice(0, 8);
+
+  return (
+    <section className="mx-auto max-w-7xl px-6 pb-24">
+      <div className="mb-10 flex items-end justify-between">
+        <h2 className="font-display text-3xl italic text-ink">New In</h2>
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-4">
+        {newInProducts.map((product: any) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </div>
+
+      <div className="mt-12 text-center">
+        <Link href="/shop" className="inline-block rounded-full border border-line px-8 py-4 text-sm font-medium text-ink-soft transition hover:border-purple-300 hover:text-purple-700">
+          View All
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function CategorySkeleton() {
+  return (
+    <section className="mx-auto max-w-7xl px-6 pb-24">
+      <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="aspect-square animate-pulse rounded-full bg-purple-50" />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CarouselSkeleton() {
+  return (
+    <section className="mx-auto max-w-7xl px-6 pb-24">
+      <div className="flex gap-5 overflow-hidden">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="aspect-[4/5] w-1/4 shrink-0 animate-pulse rounded-3xl bg-purple-50" />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function GridSkeleton() {
+  return (
+    <section className="mx-auto max-w-7xl px-6 pb-24">
+      <div className="grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="aspect-[4/5] animate-pulse rounded-3xl bg-purple-50" />
+        ))}
+      </div>
+    </section>
   );
 }
