@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/categories" },
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function CategoriesPage() {
   const categories = await getCategories();
   const visibleCategories = categories.filter((c: any) => c.count > 0);

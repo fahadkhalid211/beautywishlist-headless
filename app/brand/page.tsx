@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/brand" },
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function BrandPage() {
   const categories = await getCategories();
   const visible = categories

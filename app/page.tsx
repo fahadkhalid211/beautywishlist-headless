@@ -9,6 +9,8 @@ import ProductCarouselSection from "@/app/components/ProductCarouselSection";
 import BrandSpotlightCards from "@/app/components/BrandSpotlightCards";
 import JourneyBanner from "@/app/components/JourneyBanner";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   // Only what the hero (above-the-fold, LCP-critical) needs is awaited here.
   // Everything else streams in below via Suspense so the initial HTML/CSS/
