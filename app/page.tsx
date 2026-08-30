@@ -64,7 +64,7 @@ export default async function Home() {
 
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-2 md:gap-8">
           <div className="text-center md:text-left">
-            <p className="text-xs uppercase tracking-[0.3em] text-purple-600">New Arrivals</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-purple-600">By Hina Shahab</p>
             <h1 className="mt-4 font-display text-5xl italic tracking-tight text-ink md:text-6xl">
               Skincare that feels like a little luxury
             </h1>
