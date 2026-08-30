@@ -4,6 +4,10 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
+        hostname: "beautywishlistbyhs-shop-774165.hostingersite.com",
+      },
+      {
+        protocol: "https",
         hostname: "new.beautywishlistbyhs.shop",
       },
     ],
