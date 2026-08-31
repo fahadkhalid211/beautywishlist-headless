@@ -107,8 +107,26 @@ export default function CartDrawer() {
 
         {items.length > 0 && (
           <div className="border-t border-line bg-white px-5 py-4">
-            <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm font-medium text-ink">Subtotal</span>
+            <div className="mb-3 space-y-1.5 text-sm">
+              <div className="flex items-center justify-between text-ink-soft">
+                <span>Subtotal</span>
+                <span className="text-ink">{formatMoney(totals?.total_items, minorUnit, prefix)}</span>
+              </div>
+              {Number(totals?.total_shipping) > 0 && (
+                <div className="flex items-center justify-between text-ink-soft">
+                  <span>Shipping</span>
+                  <span className="text-ink">{formatMoney(totals?.total_shipping, minorUnit, prefix)}</span>
+                </div>
+              )}
+              {Number(totals?.total_tax) > 0 && (
+                <div className="flex items-center justify-between text-ink-soft">
+                  <span>Tax</span>
+                  <span className="text-ink">{formatMoney(totals?.total_tax, minorUnit, prefix)}</span>
+                </div>
+              )}
+            </div>
+            <div className="mb-4 flex items-center justify-between border-t border-line pt-3">
+              <span className="text-sm font-medium text-ink">Total</span>
               <span className="font-display text-xl italic text-purple-700">
                 {formatMoney(totals?.total_price, minorUnit, prefix)}
               </span>
