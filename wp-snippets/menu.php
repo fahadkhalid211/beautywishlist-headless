@@ -27,21 +27,35 @@ add_action('rest_api_init', function () {
 
 /**
  * Get Main Menu.
+ *
+ * Checks several common theme menu-location slugs (main-menu, primary,
+ * etc.) and uses whichever one actually has a menu assigned -- different
+ * themes register different location slugs (e.g. Astra uses "primary"),
+ * so this survives future theme changes without needing an update here.
  */
 function bw_get_main_menu() {
 
-    $location = 'main-menu';
-
     $locations = get_nav_menu_locations();
 
-    if (!isset($locations[$location])) {
+    $candidate_locations = ['main-menu', 'primary', 'primary-menu', 'header-menu', 'header', 'top-menu'];
+
+    $location = null;
+
+    foreach ($candidate_locations as $candidate) {
+        if (!empty($locations[$candidate])) {
+            $location = $candidate;
+            break;
+        }
+    }
+
+    if (!$location) {
 
         return new WP_Error(
             'main_menu_not_found',
-            'Main menu location was not found.',
+            'No menu is assigned to any of the expected menu locations.',
             [
                 'status' => 404,
-                'location' => $location,
+                'checked_locations' => $candidate_locations,
                 'available_locations' => array_keys(
                     get_registered_nav_menus()
                 ),
@@ -55,7 +69,7 @@ function bw_get_main_menu() {
 
         return new WP_Error(
             'main_menu_not_assigned',
-            'No menu assigned to main-menu.',
+            'No menu assigned to ' . $location . '.',
             [
                 'status' => 404,
             ]
