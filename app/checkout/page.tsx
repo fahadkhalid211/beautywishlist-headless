@@ -262,12 +262,24 @@ export default function CheckoutPage() {
                   );
                 })}
               </div>
-              {orderSnapshot.codTax > 0 && (
-                <div className="mt-3 flex items-center justify-between border-t border-line pt-3 text-sm text-ink-soft">
-                  <span>Tax (4%)</span>
-                  <span className="text-ink">{formatMoney(orderSnapshot.codTax, 0, snapPrefix)}</span>
+              <div className="mt-3 space-y-2 border-t border-line pt-3 text-sm">
+                <div className="flex items-center justify-between text-ink-soft">
+                  <span>Subtotal</span>
+                  <span className="text-ink">{formatMoney(snapTotals?.total_items, snapMinorUnit, snapPrefix)}</span>
                 </div>
-              )}
+                {Number(snapTotals?.total_shipping) > 0 && (
+                  <div className="flex items-center justify-between text-ink-soft">
+                    <span>Shipping</span>
+                    <span className="text-ink">{formatMoney(snapTotals?.total_shipping, snapMinorUnit, snapPrefix)}</span>
+                  </div>
+                )}
+                {orderSnapshot.codTax > 0 && (
+                  <div className="flex items-center justify-between text-ink-soft">
+                    <span>Tax (4%)</span>
+                    <span className="text-ink">{formatMoney(orderSnapshot.codTax, 0, snapPrefix)}</span>
+                  </div>
+                )}
+              </div>
               <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
                 <span className="text-sm font-medium text-ink">Total</span>
                 <span className="font-display text-xl italic text-purple-700">
