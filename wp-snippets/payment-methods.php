@@ -44,7 +44,7 @@ add_action('woocommerce_store_api_checkout_update_order_from_request', function 
 
         // Cash on Delivery — flat 4% tax on the subtotal.
         $subtotal = (float) $order->get_subtotal();
-        $tax      = round($subtotal * 0.04, 2);
+        $tax      = round($subtotal * 0.04);
 
         if ($tax > 0) {
 

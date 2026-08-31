@@ -94,7 +94,7 @@ export default function CheckoutPage() {
   const selectedRate = rates.find((r) => r.selected);
   const canPlaceOrder = step === 2 && (!needsShipping || rates.length === 0 || !!selectedRate);
   const subtotalValue = totals ? Number(totals.total_items) / Math.pow(10, minorUnit) : 0;
-  const codTaxPreview = step === 2 && paymentMethod === "cod" ? Math.round(subtotalValue * 0.04 * 100) / 100 : 0;
+  const codTaxPreview = step === 2 && paymentMethod === "cod" ? Math.round(subtotalValue * 0.04) : 0;
   const displayTotal = Number(totals?.total_price ?? 0) + codTaxPreview * Math.pow(10, minorUnit);
 
   useEffect(() => {
