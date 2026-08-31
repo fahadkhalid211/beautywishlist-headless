@@ -58,7 +58,7 @@ export default function SearchBar({ className = "" }: { className?: string }) {
           placeholder="Search for products..."
           className="min-w-0 flex-1 rounded-l-full border border-r-0 border-line px-5 py-2.5 text-sm outline-none focus:border-purple-500"
         />
-        <button type="submit" className="rounded-r-full bg-purple-600 px-5 py-2.5 text-white transition hover:bg-purple-700">
+        <button type="submit" aria-label="Search" className="rounded-r-full bg-purple-600 px-5 py-2.5 text-white transition hover:bg-purple-700">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
         </button>
       </form>

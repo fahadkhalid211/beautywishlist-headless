@@ -12,14 +12,14 @@ import WhatsAppWidget from "./components/WhatsAppWidget";
 const fraunces = Fraunces({
   subsets: ["latin"],
   variable: "--font-display",
-  style: ["normal", "italic"],
-  weight: ["400", "500", "600"],
+  style: ["italic"],
+  weight: ["400"],
 });
 
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-body",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600"],
 });
 
 export async function generateMetadata(): Promise<Metadata> {
