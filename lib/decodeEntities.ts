@@ -26,13 +26,24 @@ export function decodeEntities(text: string | undefined | null): string {
   if (!text) return "";
 
   let result = text;
-  for (const [entity, char] of Object.entries(NAMED_ENTITIES)) {
-    result = result.split(entity).join(char);
-  }
 
-  result = result
-    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)));
+  // Some WordPress data ends up double- (or triple-) encoded, e.g.
+  // "&amp;amp;" for a literal "&". Keep decoding until a pass makes no
+  // further change, so any depth of encoding gets fully unwrapped.
+  for (let pass = 0; pass < 5; pass++) {
+    let next = result;
+
+    for (const [entity, char] of Object.entries(NAMED_ENTITIES)) {
+      next = next.split(entity).join(char);
+    }
+
+    next = next
+      .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+      .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)));
+
+    if (next === result) break;
+    result = next;
+  }
 
   return result;
 }
