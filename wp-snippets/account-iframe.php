@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-const BW_ALLOWED_FRAME_ANCESTORS = "https://beautywishlistbyhs-shop-774165.hostingersite.com http://localhost:3000";
+const BW_ALLOWED_FRAME_ANCESTORS = "https://new.beautywishlistbyhs.shop http://localhost:3000";
 
 
 /**

@@ -9,7 +9,7 @@
  * can use whatever is set here.
  *
  * API:
- * https://beautywishlistbyhs-shop-774165.hostingersite.com/wp-json/custom/v1/homepage-images
+ * https://new.beautywishlistbyhs.shop/wp-json/custom/v1/homepage-images
  */
 
 if (!defined('ABSPATH')) {

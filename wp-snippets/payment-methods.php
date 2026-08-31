@@ -12,7 +12,7 @@
  * Settings → Tax.
  *
  * API:
- * https://beautywishlistbyhs-shop-774165.hostingersite.com/wp-json/custom/v1/payment-methods
+ * https://new.beautywishlistbyhs.shop/wp-json/custom/v1/payment-methods
  */
 
 if (!defined('ABSPATH')) {

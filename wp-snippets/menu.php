@@ -3,7 +3,7 @@
  * Headless Main Menu REST API
  *
  * API:
- * https://beautywishlistbyhs-shop-774165.hostingersite.com/wp-json/custom/v1/menu/main-menu
+ * https://new.beautywishlistbyhs.shop/wp-json/custom/v1/menu/main-menu
  */
 
 if (!defined('ABSPATH')) {
