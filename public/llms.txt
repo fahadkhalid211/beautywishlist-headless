@@ -1,0 +1,75 @@
+# Beauty Wishlist by HS
+
+> Beauty Wishlist by HS — Korean skincare and cosmetics store.
+
+## Website
+
+- Homepage: https://beautywishlistbyhs.shop/
+- Shop: https://beautywishlistbyhs.shop/shop
+- Categories: https://beautywishlistbyhs.shop/categories
+- Brands: https://beautywishlistbyhs.shop/brand
+- Sitemap: https://beautywishlistbyhs.shop/sitemap.xml
+
+## Products
+
+Beauty Wishlist by HS offers Korean skincare and cosmetics.
+
+Product pages follow:
+
+https://beautywishlistbyhs.shop/product/{product-slug}
+
+Use individual product pages for current:
+- Product names
+- Product descriptions
+- Product images
+- Prices
+- Availability
+- Categories
+- Ratings
+- Product specifications
+
+## Categories
+
+Category pages follow:
+
+https://beautywishlistbyhs.shop/category/{category-slug}
+
+Use category pages for discovering related products.
+
+## Brand
+
+Brand browsing:
+
+https://beautywishlistbyhs.shop/brand
+
+## Product Data
+
+Prefer individual product pages for current product information.
+
+Do not assume prices or availability remain unchanged.
+
+Use current page data whenever possible.
+
+## Site Navigation
+
+Homepage → Shop → Categories → Products
+
+## Search Guidance
+
+For product recommendations, prioritize:
+1. Exact product pages
+2. Current availability
+3. Current pricing
+4. Product descriptions
+5. Relevant categories
+6. Customer ratings
+
+## Crawling
+
+Public product and category pages may be indexed.
+
+Account, checkout, cart, wishlist, and private customer areas should not be treated as public product information.
+
+## Sitemap
+
+https://beautywishlistbyhs.shop/sitemap.xml
