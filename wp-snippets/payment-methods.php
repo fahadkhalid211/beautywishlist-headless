@@ -39,6 +39,7 @@ add_action('woocommerce_store_api_checkout_update_order_from_request', function 
         }
 
         $order->calculate_totals();
+        $order->save();
 
     } elseif ($payment_method === 'cod') {
 
@@ -53,9 +54,16 @@ add_action('woocommerce_store_api_checkout_update_order_from_request', function 
             $item->set_amount($tax);
             $item->set_total($tax);
             $item->set_tax_status('none');
+            $item->set_order_id($order->get_id());
+            $item->save();
 
             $order->add_item($item);
             $order->calculate_totals();
+            $order->save();
+
+            if (!$order->get_fees()) {
+                error_log('Beauty Wishlist: COD tax fee failed to persist on order #' . $order->get_id());
+            }
         }
     }
 

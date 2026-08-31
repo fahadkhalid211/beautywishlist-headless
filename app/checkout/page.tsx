@@ -158,24 +158,14 @@ export default function CheckoutPage() {
     }
   }
 
-  function pickBestRate(availableRates: any[], method: "cod" | "bacs") {
-    if (availableRates.length === 0) return null;
-
-    const keywords = method === "cod" ? ["cod", "cash"] : ["bank", "transfer", "prepaid"];
-    const matched = availableRates.find((r) => keywords.some((k) => r.name.toLowerCase().includes(k)));
-    if (matched) return matched;
-
-    return availableRates[0];
-  }
-
   useEffect(() => {
     if (step !== 2 || rates.length === 0) return;
-    const best = pickBestRate(rates, paymentMethod);
+    const best = rates[0];
     if (best && !best.selected) {
       handleSelectRate(best.rate_id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, rates.length, paymentMethod]);
+  }, [step, rates.length]);
 
   async function handlePlaceOrder() {
     setError(null);
