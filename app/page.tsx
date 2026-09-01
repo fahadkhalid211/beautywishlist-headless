@@ -9,7 +9,7 @@ import ProductCarouselSection from "@/app/components/ProductCarouselSection";
 import BrandSpotlightCards from "@/app/components/BrandSpotlightCards";
 import JourneyBanner from "@/app/components/JourneyBanner";
 
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const [featuredProducts, homepageImages] = await Promise.all([

@@ -112,6 +112,22 @@ export default function CheckoutPage() {
     setAddress((a) => ({ ...a, [field]: value }));
   }
 
+  async function submitAddress() {
+    const response = await fetch("/api/cart/customer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        billing_address: address,
+        shipping_address: address,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data?.message || "Unable to save address");
+    }
+    return data;
+  }
+
   async function handleContinue(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -119,17 +135,15 @@ export default function CheckoutPage() {
     try {
       // Same address is used for both billing and shipping. Phone is included
       // on both objects since WooCommerce may require it on shipping too.
-      const response = await fetch("/api/cart/customer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          billing_address: address,
-          shipping_address: address,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.message || "Unable to save address");
+      let data;
+      try {
+        data = await submitAddress();
+      } catch {
+        // Silent single retry — this call can occasionally fail on the very
+        // first attempt right after a new cart session starts, then succeed
+        // immediately after. Retrying once avoids surfacing a confusing
+        // error to the customer for what's normally a transient hiccup.
+        data = await submitAddress();
       }
       setCartData(data);
       setStep(2);
