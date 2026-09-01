@@ -3,10 +3,12 @@ import { unstable_cache } from "next/cache";
 const API = process.env.NEXT_PUBLIC_WC_STORE_API!;
 const WP_URL = process.env.NEXT_PUBLIC_WP_URL!;
 
-const CACHE_SECONDS = 300;
+const CATALOG_CACHE_SECONDS = 600;
+const CATEGORY_CACHE_SECONDS = 3600;
+const SEARCH_CACHE_SECONDS = 300;
 const REQUEST_TIMEOUT_MS = 8000;
 
-async function fetchJson<T>(url: string, revalidate = CACHE_SECONDS): Promise<T> {
+async function fetchJson<T>(url: string, revalidate = CATALOG_CACHE_SECONDS): Promise<T> {
   const response = await fetch(url, {
     next: { revalidate },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -20,7 +22,7 @@ async function fetchJson<T>(url: string, revalidate = CACHE_SECONDS): Promise<T>
   return response.json() as Promise<T>;
 }
 
-async function request<T>(endpoint: string, revalidate = CACHE_SECONDS): Promise<T> {
+async function request<T>(endpoint: string, revalidate = CATALOG_CACHE_SECONDS): Promise<T> {
   const cachedRequest = unstable_cache(
     () => fetchJson<T>(`${API}${endpoint}`, revalidate),
     ["woocommerce", endpoint],
@@ -38,7 +40,7 @@ type PaginatedResult<T> = {
 
 async function requestPaginated<T>(
   endpoint: string,
-  revalidate = CACHE_SECONDS
+  revalidate = CATALOG_CACHE_SECONDS
 ): Promise<PaginatedResult<T>> {
   const cachedRequest = unstable_cache(
     async () => {
@@ -81,14 +83,14 @@ export async function getHomepageImages() {
       try {
         return await fetchJson<any>(
           `${WP_URL}/wp-json/custom/v1/homepage-images`,
-          300
+          CATALOG_CACHE_SECONDS
         );
       } catch {
         return null;
       }
     },
     ["wordpress", "homepage-images"],
-    { revalidate: 300 }
+    { revalidate: CATALOG_CACHE_SECONDS }
   );
 
   return cachedRequest();
@@ -103,7 +105,10 @@ export async function getProduct(slug: string) {
 }
 
 export async function getCategories() {
-  return request<any[]>("/products/categories?per_page=100");
+  return request<any[]>(
+    "/products/categories?per_page=100",
+    CATEGORY_CACHE_SECONDS
+  );
 }
 
 export async function getCategory(slug: string) {
@@ -140,19 +145,15 @@ export async function searchProducts(params: {
 
   if (params.search) query.set("search", params.search);
   if (params.category) query.set("category", params.category);
-
-  if (params.minPrice) {
-    query.set("min_price", String(Number(params.minPrice) * 100));
-  }
-
-  if (params.maxPrice) {
-    query.set("max_price", String(Number(params.maxPrice) * 100));
-  }
-
+  if (params.minPrice) query.set("min_price", String(Number(params.minPrice) * 100));
+  if (params.maxPrice) query.set("max_price", String(Number(params.maxPrice) * 100));
   if (params.orderby) query.set("orderby", params.orderby);
   if (params.order) query.set("order", params.order);
   if (params.onSale) query.set("on_sale", "true");
   if (params.stockStatus) query.set("stock_status", params.stockStatus);
 
-  return requestPaginated<any>(`/products?${query.toString()}`, 120);
+  return requestPaginated<any>(
+    `/products?${query.toString()}`,
+    SEARCH_CACHE_SECONDS
+  );
 }
