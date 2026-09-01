@@ -1,19 +1,33 @@
-const API = process.env.NEXT_PUBLIC_WC_STORE_API!;
+import { unstable_cache } from "next/cache";
 
-async function request<T>(endpoint: string): Promise<T> {
-  const response = await fetch(`${API}${endpoint}`, {
-    next: {
-      revalidate: 60,
-    },
+const API = process.env.NEXT_PUBLIC_WC_STORE_API!;
+const WP_URL = process.env.NEXT_PUBLIC_WP_URL!;
+
+const CACHE_SECONDS = 300;
+const REQUEST_TIMEOUT_MS = 8000;
+
+async function fetchJson<T>(url: string, revalidate = CACHE_SECONDS): Promise<T> {
+  const response = await fetch(url, {
+    next: { revalidate },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    headers: { Accept: "application/json" },
   });
 
   if (!response.ok) {
-    throw new Error(
-      `WooCommerce API failed: ${response.status}`
-    );
+    throw new Error(`Remote API failed: ${response.status}`);
   }
 
-  return response.json();
+  return response.json() as Promise<T>;
+}
+
+async function request<T>(endpoint: string, revalidate = CACHE_SECONDS): Promise<T> {
+  const cachedRequest = unstable_cache(
+    () => fetchJson<T>(`${API}${endpoint}`, revalidate),
+    ["woocommerce", endpoint],
+    { revalidate }
+  );
+
+  return cachedRequest();
 }
 
 type PaginatedResult<T> = {
@@ -22,58 +36,62 @@ type PaginatedResult<T> = {
   totalPages: number;
 };
 
-async function requestPaginated<T>(endpoint: string): Promise<PaginatedResult<T>> {
-  const response = await fetch(`${API}${endpoint}`, {
-    next: { revalidate: 60 },
-  });
+async function requestPaginated<T>(
+  endpoint: string,
+  revalidate = CACHE_SECONDS
+): Promise<PaginatedResult<T>> {
+  const cachedRequest = unstable_cache(
+    async () => {
+      const response = await fetch(`${API}${endpoint}`, {
+        next: { revalidate },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        headers: { Accept: "application/json" },
+      });
 
-  if (!response.ok) {
-    throw new Error(`WooCommerce API failed: ${response.status}`);
-  }
+      if (!response.ok) {
+        throw new Error(`WooCommerce API failed: ${response.status}`);
+      }
 
-  const items = await response.json();
-  const total = Number(response.headers.get("X-WP-Total") ?? items.length);
-  const totalPages = Number(response.headers.get("X-WP-TotalPages") ?? 1);
+      const items = (await response.json()) as T[];
+      const total = Number(response.headers.get("X-WP-Total") ?? items.length);
+      const totalPages = Number(response.headers.get("X-WP-TotalPages") ?? 1);
 
-  return { items, total, totalPages };
-}
-
-export async function getProducts(
-  page = 1,
-  perPage = 24
-) {
-  return request<any[]>(
-    `/products?page=${page}&per_page=${perPage}`
+      return { items, total, totalPages };
+    },
+    ["woocommerce-paginated", endpoint],
+    { revalidate }
   );
+
+  return cachedRequest();
 }
 
-/**
- * Products marked "Feature this product" in WooCommerce (Product edit
- * screen → Product data → General/Advanced). Gives store owners a direct,
- * code-free lever to control which products appear in homepage hero/banner
- * spots, instead of relying on default sort order.
- */
+export async function getProducts(page = 1, perPage = 24) {
+  return request<any[]>(`/products?page=${page}&per_page=${perPage}`);
+}
+
 export async function getFeaturedProducts(perPage = 8) {
-  return request<any[]>(
-    `/products?featured=true&per_page=${perPage}`
-  );
+  return request<any[]>(`/products?featured=true&per_page=${perPage}`);
 }
 
-/**
- * Admin-configured homepage images (Settings → Homepage Images in
- * WordPress). Returns null fields if nothing has been set yet.
- */
 export async function getHomepageImages() {
-  const WP_URL = process.env.NEXT_PUBLIC_WP_URL!;
-  try {
-    const res = await fetch(`${WP_URL}/wp-json/custom/v1/homepage-images`, {
-      next: { revalidate: 300 },
-    });
-    if (!res.ok) return null;
-    return res.json();
-  } catch {
-    return null;
-  }
+  if (!WP_URL) return null;
+
+  const cachedRequest = unstable_cache(
+    async () => {
+      try {
+        return await fetchJson<any>(
+          `${WP_URL}/wp-json/custom/v1/homepage-images`,
+          300
+        );
+      } catch {
+        return null;
+      }
+    },
+    ["wordpress", "homepage-images"],
+    { revalidate: 300 }
+  );
+
+  return cachedRequest();
 }
 
 export async function getProduct(slug: string) {
@@ -85,19 +103,9 @@ export async function getProduct(slug: string) {
 }
 
 export async function getCategories() {
-  return request<any[]>(
-    "/products/categories?per_page=100"
-  );
+  return request<any[]>("/products/categories?per_page=100");
 }
 
-/**
- * Fetches the full category list and matches by slug in JS rather than
- * relying on the Store API's own ?slug= filter on this endpoint, which
- * doesn't reliably filter (it silently falls back to returning every
- * category, so categories[0] always resolved to the same first category
- * regardless of the requested slug — the cause of every /category/[slug]
- * page showing the same single product).
- */
 export async function getCategory(slug: string) {
   const categories = await getCategories();
   return categories.find((c: any) => c.slug === slug) ?? null;
@@ -127,55 +135,24 @@ export async function searchProducts(params: {
 }) {
   const query = new URLSearchParams();
 
-  query.set(
-    "page",
-    String(params.page ?? 1)
-  );
-
+  query.set("page", String(params.page ?? 1));
   query.set("per_page", String(params.perPage ?? 24));
 
-  if (params.search) {
-    query.set("search", params.search);
-  }
-
-  if (params.category) {
-    query.set("category", params.category);
-  }
+  if (params.search) query.set("search", params.search);
+  if (params.category) query.set("category", params.category);
 
   if (params.minPrice) {
-    query.set(
-      "min_price",
-      String(Number(params.minPrice) * 100)
-    );
+    query.set("min_price", String(Number(params.minPrice) * 100));
   }
 
   if (params.maxPrice) {
-    query.set(
-      "max_price",
-      String(Number(params.maxPrice) * 100)
-    );
+    query.set("max_price", String(Number(params.maxPrice) * 100));
   }
 
-  if (params.orderby) {
-    query.set("orderby", params.orderby);
-  }
+  if (params.orderby) query.set("orderby", params.orderby);
+  if (params.order) query.set("order", params.order);
+  if (params.onSale) query.set("on_sale", "true");
+  if (params.stockStatus) query.set("stock_status", params.stockStatus);
 
-  if (params.order) {
-    query.set("order", params.order);
-  }
-
-  if (params.onSale) {
-    query.set("on_sale", "true");
-  }
-
-  if (params.stockStatus) {
-    query.set(
-      "stock_status",
-      params.stockStatus
-    );
-  }
-
-  return requestPaginated<any>(
-    `/products?${query.toString()}`
-  );
+  return requestPaginated<any>(`/products?${query.toString()}`, 120);
 }
