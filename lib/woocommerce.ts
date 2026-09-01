@@ -3,12 +3,12 @@ import { unstable_cache } from "next/cache";
 const API = process.env.NEXT_PUBLIC_WC_STORE_API!;
 const WP_URL = process.env.NEXT_PUBLIC_WP_URL!;
 
-const CATALOG_CACHE_SECONDS = 600;
+const CATALOG_CACHE_SECONDS = 900;
 const CATEGORY_CACHE_SECONDS = 3600;
 const SEARCH_CACHE_SECONDS = 300;
 const REQUEST_TIMEOUT_MS = 8000;
 
-async function fetchJson<T>(url: string, revalidate = CATALOG_CACHE_SECONDS): Promise<T> {
+async function fetchJson<T>(url: string, revalidate: number): Promise<T> {
   const response = await fetch(url, {
     next: { revalidate },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
