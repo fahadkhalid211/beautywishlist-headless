@@ -59,6 +59,18 @@ function bw_rest_is_public_catalog_request($request) {
 }
 
 /**
+ * Keep LiteSpeed's server-side product cache aligned with the five-minute
+ * shared-cache lifetime. This runs before LiteSpeed writes its cache metadata.
+ */
+add_filter('rest_post_dispatch', function ($response, $server, $request) {
+    if (bw_rest_is_public_catalog_request($request)) {
+        do_action('litespeed_control_set_ttl', 300);
+    }
+
+    return $response;
+}, 10, 3);
+
+/**
  * Send headers immediately before WordPress writes the REST response.
  *
  * Using rest_pre_serve_request is deliberate: response-object headers can be
