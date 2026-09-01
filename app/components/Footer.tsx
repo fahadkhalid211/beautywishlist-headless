@@ -60,7 +60,7 @@ export default async function Footer() {
           <h3 className="text-sm font-semibold text-ink">Categories</h3>
           <ul className="mt-4 space-y-3 text-sm text-ink-soft">
             {topCategories.map((c: any) => (
-              <li key={c.id}><Link href={`/category/${c.slug}`} className="hover:text-purple-700">{decodeEntities(c.name)}</Link></li>
+              <li key={c.id}><Link href={`/category/${c.slug}`} prefetch={false} className="hover:text-purple-700">{decodeEntities(c.name)}</Link></li>
             ))}
           </ul>
         </div>

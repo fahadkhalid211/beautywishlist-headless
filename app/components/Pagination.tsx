@@ -34,6 +34,7 @@ export default function Pagination({
       <Link
         href={buildListingHref(basePath, filters, { page: String(Math.max(1, currentPage - 1)) })}
         aria-disabled={currentPage === 1}
+        prefetch={false}
         className={`grid h-10 w-10 place-items-center rounded-full border border-line text-sm transition ${
           currentPage === 1 ? "pointer-events-none opacity-40" : "text-ink-soft hover:border-purple-300 hover:text-purple-700"
         }`}
@@ -52,6 +53,7 @@ export default function Pagination({
           <Link
             key={p}
             href={buildListingHref(basePath, filters, { page: String(p) })}
+            prefetch={false}
             className={`grid h-10 w-10 place-items-center rounded-full text-sm font-medium transition ${
               p === currentPage ? "bg-purple-600 text-white" : "border border-line text-ink-soft hover:border-purple-300 hover:text-purple-700"
             }`}
@@ -64,6 +66,7 @@ export default function Pagination({
       <Link
         href={buildListingHref(basePath, filters, { page: String(Math.min(totalPages, currentPage + 1)) })}
         aria-disabled={currentPage === totalPages}
+        prefetch={false}
         className={`grid h-10 w-10 place-items-center rounded-full border border-line text-sm transition ${
           currentPage === totalPages ? "pointer-events-none opacity-40" : "text-ink-soft hover:border-purple-300 hover:text-purple-700"
         }`}

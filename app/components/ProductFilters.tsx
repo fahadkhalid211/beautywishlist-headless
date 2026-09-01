@@ -22,6 +22,7 @@ export default function ProductFilters({
         <div className="space-y-1">
           <Link
             href={buildListingHref("/shop", filters, { page: undefined })}
+            prefetch={false}
             className={`flex items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-sm transition ${
               !activeCategorySlug ? "bg-purple-50 font-medium text-purple-700" : "text-ink-soft hover:bg-purple-50/60"
             }`}
@@ -34,6 +35,7 @@ export default function ProductFilters({
               <Link
                 key={c.id}
                 href={buildListingHref(`/category/${c.slug}`, filters, { page: undefined })}
+                prefetch={false}
                 className={`flex items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-sm transition ${
                   active ? "bg-purple-50 font-medium text-purple-700" : "text-ink-soft hover:bg-purple-50/60"
                 }`}
@@ -73,7 +75,7 @@ export default function ProductFilters({
           <button type="submit" className="flex-1 rounded-full bg-purple-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-purple-700">
             Apply
           </button>
-          <Link href={basePath} className="rounded-full border border-line px-4 py-3 text-sm text-ink-soft transition hover:border-purple-300">
+          <Link href={basePath} prefetch={false} className="rounded-full border border-line px-4 py-3 text-sm text-ink-soft transition hover:border-purple-300">
             Clear
           </Link>
         </div>

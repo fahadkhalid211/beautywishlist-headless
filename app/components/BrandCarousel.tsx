@@ -20,6 +20,7 @@ export default function BrandCarousel({ categories }: { categories: any[] }) {
             <Link
               key={c.id}
               href={`/category/${c.slug}`}
+              prefetch={false}
               className="group flex w-24 shrink-0 snap-start flex-col items-center text-center sm:w-28"
             >
               <div className="relative aspect-square w-full overflow-hidden rounded-full bg-purple-50 ring-1 ring-line transition group-hover:ring-purple-300">
