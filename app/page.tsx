@@ -8,15 +8,21 @@ import ProductCarouselSection from "@/app/components/ProductCarouselSection";
 import BrandSpotlightCards from "@/app/components/BrandSpotlightCards";
 import JourneyBanner from "@/app/components/JourneyBanner";
 
-export const dynamic = "force-dynamic";
+// Fully static: this page is built once and served as complete HTML to
+// everyone, regenerating in the background at most every 5 minutes. No
+// per-visitor server computation, no ongoing response stream -- avoids the
+// Next.js 16.3.x streaming bug entirely for this page (client disconnects
+// mid-stream throw "The destination stream closed early.", a real risk on
+// unstable mobile/in-app-browser connections).
+// See: https://github.com/vercel/next.js/issues/96704
+export const revalidate = 300;
+
+const EMPTY_PAGINATED = { items: [] as any[], total: 0, totalPages: 0 };
 
 export default async function Home() {
-  // All data is resolved here, before any JSX is returned -- deliberately
-  // not using Suspense/streaming on this page. Next.js 16.3.x has a known
-  // bug (client disconnects mid-stream throw "The destination stream
-  // closed early.") that specifically affects streamed Server Components,
-  // which is a real risk on unstable mobile/in-app-browser connections.
-  // See: https://github.com/vercel/next.js/issues/96704
+  // Each fetch is individually guarded so a single flaky/unreachable call
+  // (e.g. WordPress briefly unreachable during a background regeneration)
+  // can't fail the whole page -- it just degrades that one section instead.
   const [
     featuredProducts,
     homepageImages,
@@ -25,12 +31,12 @@ export default async function Home() {
     bestSellersResult,
     products,
   ] = await Promise.all([
-    getFeaturedProducts(4),
-    getHomepageImages(),
-    getCategories(),
-    searchProducts({ onSale: true, perPage: 8 }),
-    searchProducts({ orderby: "popularity", order: "desc", perPage: 8 }),
-    getProducts(1, 8),
+    getFeaturedProducts(4).catch(() => [] as any[]),
+    getHomepageImages().catch(() => null),
+    getCategories().catch(() => [] as any[]),
+    searchProducts({ onSale: true, perPage: 8 }).catch(() => EMPTY_PAGINATED),
+    searchProducts({ orderby: "popularity", order: "desc", perPage: 8 }).catch(() => EMPTY_PAGINATED),
+    getProducts(1, 8).catch(() => [] as any[]),
   ]);
 
   const heroImage1 = homepageImages?.hero_image_1
