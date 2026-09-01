@@ -3,8 +3,8 @@
  * Beauty Wishlist
  * REST/API cache control for headless WooCommerce.
  *
- * Public catalog GET requests remain cacheable.
- * Authenticated/account/state-changing requests never cache.
+ * Public catalog GET requests may be cached by a browser/CDN.
+ * Authenticated, cart, account, and state-changing requests never cache.
  */
 
 if (!defined('ABSPATH')) {
@@ -13,96 +13,82 @@ if (!defined('ABSPATH')) {
 
 function bw_rest_request_must_not_cache($request) {
     $method = strtoupper($request->get_method());
-    $route  = (string) $request->get_route();
+    $route = (string) $request->get_route();
 
     if (!in_array($method, ['GET', 'HEAD'], true)) {
         return true;
     }
 
-    if (strpos($route, '/custom/v1/me') === 0) {
-        return true;
-    }
+    $private_routes = [
+        '/custom/v1/me',
+        '/custom/v1/orders',
+        '/custom/v1/login',
+        '/custom/v1/register',
+        '/custom/v1/revoke',
+        '/wc/store/v1/cart',
+        '/wc/store/v1/checkout',
+    ];
 
-    if (strpos($route, '/custom/v1/orders') === 0) {
-        return true;
-    }
-
-    if (
-        strpos($route, '/custom/v1/login') === 0 ||
-        strpos($route, '/custom/v1/register') === 0 ||
-        strpos($route, '/custom/v1/revoke') === 0
-    ) {
-        return true;
+    foreach ($private_routes as $private_route) {
+        if (strpos($route, $private_route) === 0) {
+            return true;
+        }
     }
 
     return false;
 }
 
+function bw_rest_is_public_catalog_request($request) {
+    if (strtoupper($request->get_method()) !== 'GET') {
+        return false;
+    }
+
+    if (strpos((string) $request->get_route(), '/wc/store/v1/products') !== 0) {
+        return false;
+    }
+
+    // A catalog response for an authenticated or cart-bearing request can be
+    // personalized, so only anonymous requests may be stored publicly.
+    if (is_user_logged_in()) {
+        return false;
+    }
+
+    return !$request->get_header('authorization')
+        && !$request->get_header('cart-token')
+        && !$request->get_header('nonce');
+}
+
 /**
- * Never cache private/state-changing REST responses.
+ * Send headers immediately before WordPress writes the REST response.
+ *
+ * Using rest_pre_serve_request is deliberate: response-object headers can be
+ * replaced by cache plugins later in the request lifecycle.
  */
 add_filter('rest_pre_serve_request', function ($served, $result, $request, $server) {
+    if (bw_rest_request_must_not_cache($request)) {
+        if (!defined('DONOTCACHEPAGE')) {
+            define('DONOTCACHEPAGE', true);
+        }
 
-    if (!bw_rest_request_must_not_cache($request)) {
+        do_action('litespeed_control_set_nocache');
+
+        header('Cache-Control: private, no-store, no-cache, must-revalidate, max-age=0', true);
+        header('Pragma: no-cache', true);
+        header('Expires: 0', true);
+
         return $served;
     }
 
-    if (!defined('DONOTCACHEPAGE')) {
-        define('DONOTCACHEPAGE', true);
+    if (bw_rest_is_public_catalog_request($request)) {
+        // Browser: 60 seconds. Shared caches/CDNs: five minutes.
+        header(
+            'Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=60',
+            true
+        );
+
+        // Helpful for CDNs that honor Surrogate-Control over Cache-Control.
+        header('Surrogate-Control: max-age=300, stale-while-revalidate=60', true);
     }
-
-    do_action('litespeed_control_set_nocache');
-
-    header('Cache-Control: private, no-store, no-cache, must-revalidate, max-age=0');
-    header('Pragma: no-cache');
-    header('Expires: 0');
 
     return $served;
-
-}, 10, 4);
-
-/**
- * Add explicit public caching for anonymous WooCommerce catalog requests.
- *
- * This lets CDN/proxy layers cache catalog responses instead of forwarding
- * every request to WordPress. Cart/account endpoints remain untouched.
- */
-add_filter('rest_post_dispatch', function ($response, $server, $request) {
-
-    if (strtoupper($request->get_method()) !== 'GET') {
-        return $response;
-    }
-
-    $route = (string) $request->get_route();
-
-    // WooCommerce Store API product catalog.
-    if (strpos($route, '/wc/store/v1/products') === 0) {
-        $has_auth = (string) $request->get_header('authorization');
-        $has_cart = (string) $request->get_header('cart-token');
-
-        if (!$has_auth && !$has_cart) {
-            $response->header(
-                'Cache-Control',
-                'public, max-age=60, s-maxage=300, stale-while-revalidate=60'
-            );
-        }
-
-        return $response;
-    }
-
-    $public_routes = [
-        '/custom/v1/menu/main-menu',
-        '/custom/v1/homepage-images',
-        '/custom/v1/payment-methods',
-    ];
-
-    if (in_array($route, $public_routes, true)) {
-        $response->header(
-            'Cache-Control',
-            'public, max-age=300, s-maxage=300, stale-while-revalidate=60'
-        );
-    }
-
-    return $response;
-
-}, 10, 3);
+}, 100, 4);
