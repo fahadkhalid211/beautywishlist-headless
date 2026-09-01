@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { reportError } from "@/lib/errorReporting";
 
 export default function Error({
   error,
@@ -12,6 +13,7 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error(error);
+    reportError({ message: error.message, stack: error.stack, type: "react-error-boundary" });
   }, [error]);
 
   return (

@@ -8,6 +8,7 @@ import { AuthProvider } from "./components/account/AuthProvider";
 import { WishlistProvider } from "./components/wishlist/WishlistProvider";
 import Footer from "./components/Footer";
 import WhatsAppWidget from "./components/WhatsAppWidget";
+import GlobalErrorListener from "./components/GlobalErrorListener";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -83,6 +84,7 @@ export default function RootLayout({
               <Footer />
               <CartDrawer />
               <WhatsAppWidget />
+              <GlobalErrorListener />
             </CartProvider>
           </WishlistProvider>
         </AuthProvider>
