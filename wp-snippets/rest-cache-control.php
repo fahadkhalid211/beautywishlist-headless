@@ -30,7 +30,7 @@ function bw_rest_request_must_not_cache($request) {
     ];
 
     foreach ($private_routes as $private_route) {
-        if (strpos($route, $private_route) === 0) {
+        if ($route === $private_route || strpos($route, $private_route . '/') === 0) {
             return true;
         }
     }
@@ -59,7 +59,7 @@ function bw_rest_is_public_catalog_request($request) {
     $matches_cacheable_prefix = false;
 
     foreach ($cacheable_prefixes as $prefix) {
-        if (strpos($route, $prefix) === 0) {
+        if ($route === $prefix || strpos($route, $prefix . '/') === 0) {
             $matches_cacheable_prefix = true;
             break;
         }
