@@ -1,5 +1,3 @@
-import { unstable_cache } from "next/cache";
-
 const API = process.env.NEXT_PUBLIC_WC_STORE_API!;
 const WP_URL = process.env.NEXT_PUBLIC_WP_URL!;
 
@@ -22,14 +20,11 @@ async function fetchJson<T>(url: string, revalidate: number): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-async function request<T>(endpoint: string, revalidate = CATALOG_CACHE_SECONDS): Promise<T> {
-  const cachedRequest = unstable_cache(
-    () => fetchJson<T>(`${API}${endpoint}`, revalidate),
-    ["woocommerce", endpoint],
-    { revalidate }
-  );
-
-  return cachedRequest();
+async function request<T>(
+  endpoint: string,
+  revalidate = CATALOG_CACHE_SECONDS
+): Promise<T> {
+  return fetchJson<T>(`${API}${endpoint}`, revalidate);
 }
 
 type PaginatedResult<T> = {
@@ -42,29 +37,21 @@ async function requestPaginated<T>(
   endpoint: string,
   revalidate = CATALOG_CACHE_SECONDS
 ): Promise<PaginatedResult<T>> {
-  const cachedRequest = unstable_cache(
-    async () => {
-      const response = await fetch(`${API}${endpoint}`, {
-        next: { revalidate },
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-        headers: { Accept: "application/json" },
-      });
+  const response = await fetch(`${API}${endpoint}`, {
+    next: { revalidate },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    headers: { Accept: "application/json" },
+  });
 
-      if (!response.ok) {
-        throw new Error(`WooCommerce API failed: ${response.status}`);
-      }
+  if (!response.ok) {
+    throw new Error(`WooCommerce API failed: ${response.status}`);
+  }
 
-      const items = (await response.json()) as T[];
-      const total = Number(response.headers.get("X-WP-Total") ?? items.length);
-      const totalPages = Number(response.headers.get("X-WP-TotalPages") ?? 1);
+  const items = (await response.json()) as T[];
+  const total = Number(response.headers.get("X-WP-Total") ?? items.length);
+  const totalPages = Number(response.headers.get("X-WP-TotalPages") ?? 1);
 
-      return { items, total, totalPages };
-    },
-    ["woocommerce-paginated", endpoint],
-    { revalidate }
-  );
-
-  return cachedRequest();
+  return { items, total, totalPages };
 }
 
 export async function getProducts(page = 1, perPage = 24) {
@@ -78,22 +65,14 @@ export async function getFeaturedProducts(perPage = 8) {
 export async function getHomepageImages() {
   if (!WP_URL) return null;
 
-  const cachedRequest = unstable_cache(
-    async () => {
-      try {
-        return await fetchJson<any>(
-          `${WP_URL}/wp-json/custom/v1/homepage-images`,
-          CATALOG_CACHE_SECONDS
-        );
-      } catch {
-        return null;
-      }
-    },
-    ["wordpress", "homepage-images"],
-    { revalidate: CATALOG_CACHE_SECONDS }
-  );
-
-  return cachedRequest();
+  try {
+    return await fetchJson<any>(
+      `${WP_URL}/wp-json/custom/v1/homepage-images`,
+      CATALOG_CACHE_SECONDS
+    );
+  } catch {
+    return null;
+  }
 }
 
 export async function getProduct(slug: string) {
