@@ -43,7 +43,29 @@ function bw_rest_is_public_catalog_request($request) {
         return false;
     }
 
-    if (strpos((string) $request->get_route(), '/wc/store/v1/products') !== 0) {
+    $route = (string) $request->get_route();
+
+    // WooCommerce product catalog, plus our own public, non-personalized
+    // custom endpoints (menu, payment method info, homepage images). These
+    // are fetched on nearly every page load and rarely change, so they're
+    // safe to cache the same way as products/categories.
+    $cacheable_prefixes = [
+        '/wc/store/v1/products',
+        '/custom/v1/menu',
+        '/custom/v1/payment-methods',
+        '/custom/v1/homepage-images',
+    ];
+
+    $matches_cacheable_prefix = false;
+
+    foreach ($cacheable_prefixes as $prefix) {
+        if (strpos($route, $prefix) === 0) {
+            $matches_cacheable_prefix = true;
+            break;
+        }
+    }
+
+    if (!$matches_cacheable_prefix) {
         return false;
     }
 
