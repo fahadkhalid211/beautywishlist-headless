@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getCategories, searchProducts, getFeaturedProducts, getHomepageImages, getProducts } from "@/lib/woocommerce";
+import { getCategories, searchProducts, getProducts } from "@/lib/woocommerce";
 import ProductCard from "@/app/components/ProductCard";
 import CategoryCircles from "@/app/components/CategoryCircles";
 import BrandCarousel from "@/app/components/BrandCarousel";
@@ -8,58 +8,40 @@ import ProductCarouselSection from "@/app/components/ProductCarouselSection";
 import BrandSpotlightCards from "@/app/components/BrandSpotlightCards";
 import JourneyBanner from "@/app/components/JourneyBanner";
 
-// Fully static: this page is built once and served as complete HTML to
-// everyone, regenerating in the background at most every 5 minutes. No
-// per-visitor server computation, no ongoing response stream -- avoids the
-// Next.js 16.3.x streaming bug entirely for this page (client disconnects
-// mid-stream throw "The destination stream closed early.", a real risk on
-// unstable mobile/in-app-browser connections).
-// See: https://github.com/vercel/next.js/issues/96704
-export const revalidate = 300;
+// Fully static with NO automatic time-based refresh -- this page only
+// regenerates when explicitly triggered via POST /api/revalidate (a button
+// in WordPress under Settings -> Homepage Images calls this). Until then,
+// the exact same pre-built HTML is served to everyone: no per-visitor
+// server computation, no ongoing response stream, and no repeated
+// WooCommerce queries on every visit or every few minutes. This also keeps
+// the page structurally immune to the Next.js streaming bug discussed
+// separately (client disconnects mid-stream throwing "The destination
+// stream closed early" -- https://github.com/vercel/next.js/issues/96704).
+export const revalidate = false;
 
 const EMPTY_PAGINATED = { items: [] as any[], total: 0, totalPages: 0 };
 
+// Static hero/banner images -- provided directly, not sourced from
+// WordPress. Swap these files in /public/images to change them.
+const HERO_IMAGE_1 = { src: "/images/ord.avif", alt: "Featured skincare" };
+const HERO_IMAGE_2 = { src: "/images/anua1.jpg", alt: "Featured skincare" };
+const JOURNEY_BACKDROP = { src: "/images/anua-cover.webp", alt: "Beauty Wishlist" };
+
 export default async function Home() {
   // Each fetch is individually guarded so a single flaky/unreachable call
-  // (e.g. WordPress briefly unreachable during a background regeneration)
-  // can't fail the whole page -- it just degrades that one section instead.
-  const [
-    featuredProducts,
-    homepageImages,
-    categories,
-    saleResult,
-    bestSellersResult,
-    products,
-  ] = await Promise.all([
-    getFeaturedProducts(4).catch(() => [] as any[]),
-    getHomepageImages().catch(() => null),
+  // can't fail the whole page/regeneration -- it just degrades that one
+  // section instead.
+  const [categories, saleResult, bestSellersResult, products] = await Promise.all([
     getCategories().catch(() => [] as any[]),
     searchProducts({ onSale: true, perPage: 8 }).catch(() => EMPTY_PAGINATED),
     searchProducts({ orderby: "popularity", order: "desc", perPage: 8 }).catch(() => EMPTY_PAGINATED),
     getProducts(1, 8).catch(() => [] as any[]),
   ]);
 
-  const heroImage1 = homepageImages?.hero_image_1
-    ? { src: homepageImages.hero_image_1, alt: "Hero banner" }
-    : featuredProducts[0]?.images?.[0]
-    ? { src: featuredProducts[0].images[0].src, alt: featuredProducts[0].images[0].alt || featuredProducts[0].name }
-    : null;
-
-  const heroImage2 = homepageImages?.hero_image_2
-    ? { src: homepageImages.hero_image_2, alt: "Hero banner" }
-    : featuredProducts[1]?.images?.[0]
-    ? { src: featuredProducts[1].images[0].src, alt: featuredProducts[1].images[0].alt || featuredProducts[1].name }
-    : null;
-
-  const journeyBackdrop = homepageImages?.banner_image
-    ? { src: homepageImages.banner_image, alt: "Beauty Wishlist" }
-    : featuredProducts[3]?.images?.[0] || featuredProducts[0]?.images?.[0];
-
   const topCategories = categories
     .filter((c: any) => c.count > 0)
     .sort((a: any, b: any) => b.count - a.count)
     .slice(0, 4);
-  const allBrandCategories = categories.filter((c: any) => c.count > 0);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_WP_URL || "";
   const websiteJsonLd = {
@@ -104,48 +86,43 @@ export default async function Home() {
             </Link>
           </div>
 
-          {heroImage1 && (
-            <div className="relative mx-auto h-[420px] w-full max-w-md md:h-[480px]">
-              <div className="absolute inset-0 -rotate-2 overflow-hidden rounded-[2rem] bg-purple-50 shadow-xl shadow-purple-900/10 transition duration-500 hover:rotate-0">
-                <Image
-                  src={heroImage1.src}
-                  alt={heroImage1.alt}
-                  fill
-                  sizes="(max-width: 768px) 90vw, 420px"
-                  className="object-cover"
-                  priority
-                  fetchPriority="high"
-                  unoptimized
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-ink/20 via-transparent to-transparent" />
+          <div className="relative mx-auto h-[420px] w-full max-w-md md:h-[480px]">
+            <div className="absolute inset-0 -rotate-2 overflow-hidden rounded-[2rem] bg-purple-50 shadow-xl shadow-purple-900/10 transition duration-500 hover:rotate-0">
+              <Image
+                src={HERO_IMAGE_1.src}
+                alt={HERO_IMAGE_1.alt}
+                fill
+                sizes="(max-width: 768px) 90vw, 420px"
+                className="object-cover"
+                priority
+                fetchPriority="high"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-ink/20 via-transparent to-transparent" />
+            </div>
+
+            <div className="absolute -bottom-6 -right-4 h-40 w-40 rotate-6 overflow-hidden rounded-3xl border-4 border-white bg-blush shadow-xl transition duration-500 hover:rotate-0 sm:h-48 sm:w-48">
+              <Image src={HERO_IMAGE_2.src} alt={HERO_IMAGE_2.alt} fill sizes="192px" className="object-cover" />
+            </div>
+
+            <div className="absolute -left-4 top-6 flex items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-lg shadow-purple-900/10 sm:-left-8">
+              <div className="flex text-amber-400">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <svg key={i} width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 1l2.6 5.9 6.4.6-4.8 4.3 1.4 6.2L10 15l-5.6 3 1.4-6.2L1 8.5l6.4-.6z" />
+                  </svg>
+                ))}
               </div>
-
-              {heroImage2 && (
-                <div className="absolute -bottom-6 -right-4 h-40 w-40 rotate-6 overflow-hidden rounded-3xl border-4 border-white bg-blush shadow-xl transition duration-500 hover:rotate-0 sm:h-48 sm:w-48">
-                  <Image src={heroImage2.src} alt={heroImage2.alt} fill sizes="192px" className="object-cover" />
-                </div>
-              )}
-
-              <div className="absolute -left-4 top-6 flex items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-lg shadow-purple-900/10 sm:-left-8">
-                <div className="flex text-amber-400">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <svg key={i} width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M10 1l2.6 5.9 6.4.6-4.8 4.3 1.4 6.2L10 15l-5.6 3 1.4-6.2L1 8.5l6.4-.6z" />
-                    </svg>
-                  ))}
-                </div>
-                <div className="text-left">
-                  <p className="text-xs font-semibold text-ink">Loved by shoppers</p>
-                  <p className="text-[10px] text-ink-soft">100% Authentic Korean Skincare</p>
-                </div>
+              <div className="text-left">
+                <p className="text-xs font-semibold text-ink">Loved by shoppers</p>
+                <p className="text-[10px] text-ink-soft">100% Authentic Korean Skincare</p>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </section>
 
       <CategoryCircles categories={topCategories} />
-      <BrandCarousel categories={allBrandCategories} />
+      <BrandCarousel />
 
       <ProductCarouselSection
         eyebrow="Limited Time"
@@ -162,7 +139,7 @@ export default async function Home() {
 
       <BrandSpotlightCards categories={categories} />
 
-      <JourneyBanner backgroundImage={journeyBackdrop} />
+      <JourneyBanner backgroundImage={JOURNEY_BACKDROP} />
 
       <section className="mx-auto max-w-7xl px-6 pb-24">
         <div className="mb-10 flex items-end justify-between">

@@ -1,12 +1,20 @@
 <?php
 /**
  * Beauty Wishlist
- * Homepage Images Settings
+ * Homepage Images Settings + Manual Homepage Data Refresh
  *
- * Adds a "Homepage Images" settings page (Settings → Homepage Images) with
- * a media uploader for the two hero section images and the full-width
- * banner background image. Exposes them via REST so the headless frontend
- * can use whatever is set here.
+ * NOTE: The homepage's hero/banner images are now static (hardcoded in
+ * the frontend, provided directly rather than sourced from here) -- the
+ * fields below are kept but currently unused by the live homepage.
+ *
+ * Also adds a "Refresh Homepage Data" button. The homepage no longer
+ * re-fetches products/categories automatically -- it stays on whatever
+ * data it last had until this button is pressed, which tells the
+ * frontend to regenerate with fresh data from WooCommerce.
+ *
+ * IMPORTANT: set BW_REVALIDATION_SECRET below to match the
+ * REVALIDATION_SECRET environment variable on the Next.js app, and set
+ * BW_FRONTEND_URL to your live frontend domain.
  *
  * API:
  * https://new.beautywishlistbyhs.shop/wp-json/custom/v1/homepage-images
@@ -15,6 +23,9 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+
+define('BW_FRONTEND_URL', 'https://beautywishlistbyhs.shop');
+define('BW_REVALIDATION_SECRET', 'change-this-to-match-your-env-var');
 
 add_action('admin_menu', function () {
 
@@ -49,6 +60,24 @@ function bw_render_homepage_images_page() {
         echo '<div class="notice notice-success"><p>Saved.</p></div>';
     }
 
+    if (
+        isset($_POST['bw_refresh_nonce']) &&
+        wp_verify_nonce($_POST['bw_refresh_nonce'], 'bw_refresh_homepage')
+    ) {
+        $response = wp_remote_post(
+            BW_FRONTEND_URL . '/api/revalidate?secret=' . urlencode(BW_REVALIDATION_SECRET),
+            ['timeout' => 15]
+        );
+
+        if (is_wp_error($response)) {
+            echo '<div class="notice notice-error"><p>Refresh failed: ' . esc_html($response->get_error_message()) . '</p></div>';
+        } elseif (wp_remote_retrieve_response_code($response) === 200) {
+            echo '<div class="notice notice-success"><p>Homepage data refreshed successfully.</p></div>';
+        } else {
+            echo '<div class="notice notice-error"><p>Refresh failed: unexpected response from frontend.</p></div>';
+        }
+    }
+
     $hero1  = get_option('bw_hero_image_1', '');
     $hero2  = get_option('bw_hero_image_2', '');
     $banner = get_option('bw_banner_image', '');
@@ -56,7 +85,18 @@ function bw_render_homepage_images_page() {
     ?>
     <div class="wrap">
         <h1>Homepage Images</h1>
-        <p>Leave any field blank to fall back to your WooCommerce featured products automatically.</p>
+
+        <div class="notice notice-info" style="padding: 12px 16px; margin: 20px 0;">
+            <p><strong>Homepage data is now manual.</strong> Products, sale items, best sellers, and categories shown on the homepage no longer update automatically. Press this button any time you want the homepage to pick up your latest changes from WooCommerce.</p>
+            <form method="post" style="margin-top: 10px;">
+                <?php wp_nonce_field('bw_refresh_homepage', 'bw_refresh_nonce'); ?>
+                <?php submit_button('Refresh Homepage Data', 'primary', 'submit', false); ?>
+            </form>
+        </div>
+
+        <hr style="margin: 30px 0;">
+
+        <p><em>Note: the fields below are currently unused -- the homepage's hero and banner images are hardcoded directly in the frontend rather than sourced from here.</em></p>
         <form method="post">
             <?php wp_nonce_field('bw_save_homepage_images', 'bw_homepage_images_nonce'); ?>
             <table class="form-table">

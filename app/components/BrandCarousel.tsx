@@ -1,41 +1,55 @@
 import Link from "next/link";
-import Image from "next/image";
 import Carousel from "@/app/components/Carousel";
-import { decodeEntities } from "@/lib/decodeEntities";
 
-export default function BrandCarousel({ categories }: { categories: any[] }) {
-  if (categories.length === 0) return null;
+type StaticBrand = {
+  name: string;
+  href: string;
+};
 
+// Static by design -- no WooCommerce fetch. Edit this list directly to
+// change what shows here; each item just needs a display name and the
+// category URL it should link to.
+const BRANDS: StaticBrand[] = [
+  { name: "Korean Brands", href: "/category/korean-brands/" },
+  { name: "Cleansers", href: "/category/cleansers/" },
+  { name: "Moisturizers", href: "/category/moisturisers/" },
+  { name: "Makeup", href: "/category/makeup/" },
+  { name: "CeraVe", href: "/category/cerave/" },
+  { name: "Medicube", href: "/category/medicube/" },
+  { name: "The Ordinary", href: "/category/the-ordinary/" },
+];
+
+export default function BrandCarousel() {
   return (
     <section className="mx-auto max-w-7xl px-6 pb-24">
-      <div className="mb-8">
-        <p className="text-xs uppercase tracking-[0.25em] text-purple-600">Shop by Brand</p>
-        <h2 className="mt-2 font-display text-3xl italic text-ink">Korean Beauty Brands</h2>
+      <div className="mb-8 flex items-end justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-purple-600">Shop by Brand</p>
+          <h2 className="mt-2 font-display text-3xl italic text-ink">Korean Beauty Brands</h2>
+        </div>
+        <Link href="/brand" prefetch={false} className="shrink-0 text-sm text-purple-700 hover:underline">
+          View More
+        </Link>
       </div>
 
       <Carousel>
-        {categories.map((c: any) => {
-          const name = decodeEntities(c.name);
-          return (
-            <Link
-              key={c.id}
-              href={`/category/${c.slug}`}
-              prefetch={false}
-              className="group flex w-24 shrink-0 snap-start flex-col items-center text-center sm:w-28"
-            >
-              <div className="relative aspect-square w-full overflow-hidden rounded-full bg-purple-50 ring-1 ring-line transition group-hover:ring-purple-300">
-                {c.image?.src ? (
-                  <Image src={c.image.src} alt={c.image.alt || name} fill sizes="112px" className="object-cover transition duration-500 group-hover:scale-110" />
-                ) : (
-                  <div className="flex h-full items-center justify-center font-display text-lg italic text-purple-400">
-                    {name.charAt(0)}
-                  </div>
-                )}
+        {BRANDS.map((brand) => (
+          <Link
+            key={brand.name}
+            href={brand.href}
+            prefetch={false}
+            className="group flex w-24 shrink-0 snap-start flex-col items-center text-center sm:w-28"
+          >
+            <div className="relative aspect-square w-full overflow-hidden rounded-full bg-purple-50 ring-1 ring-line transition group-hover:ring-purple-300">
+              <div className="flex h-full items-center justify-center font-display text-lg italic text-purple-400">
+                {brand.name.charAt(0)}
               </div>
-              <p className="mt-3 line-clamp-2 text-xs font-medium text-ink transition group-hover:text-purple-700">{name}</p>
-            </Link>
-          );
-        })}
+            </div>
+            <p className="mt-3 line-clamp-2 text-xs font-medium text-ink transition group-hover:text-purple-700">
+              {brand.name}
+            </p>
+          </Link>
+        ))}
       </Carousel>
     </section>
   );
