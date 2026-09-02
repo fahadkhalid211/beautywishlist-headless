@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fetchStoreApi } from "@/lib/storeApi";
 
 const WP_URL = process.env.NEXT_PUBLIC_WP_URL!;
 
@@ -10,17 +11,15 @@ export async function POST(request: NextRequest) {
     try {
       const { uuid } = JSON.parse(Buffer.from(sessionCookie, "base64").toString());
       if (uuid) {
-        await fetch(`${WP_URL}/wp-json/custom/v1/revoke-app-password`, {
+        await fetchStoreApi(`${WP_URL}/wp-json/custom/v1/revoke-app-password`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ uuid }),
+          timeoutMs: 4000,
         });
       }
-    } catch {
-      // best-effort cleanup — proceed to clear cookies regardless
+    } catch (error) {
+      console.error("Logout backend cleanup failed:", error);
     }
   }
 
