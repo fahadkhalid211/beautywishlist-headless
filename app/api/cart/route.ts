@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getWpAuthHeader } from "@/lib/wpAuth";
 import { setCartCookies } from "@/lib/cartSession";
+import { fetchStoreApi } from "@/lib/storeApi";
 
 const API = process.env.NEXT_PUBLIC_WC_STORE_API!;
 
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest) {
   const ua = request.headers.get("user-agent") ?? "";
   const authHeader = getWpAuthHeader(request);
 
-  const response = await fetch(`${API}/cart`, {
+  const response = await fetchStoreApi(`${API}/cart`, {
     method: "GET",
     cache: "no-store",
     headers: { ...(token ? { "Cart-Token": token } : {}), "User-Agent": ua, ...authHeader },
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
   const newToken = response.headers.get("Cart-Token");
   const newNonce = response.headers.get("Nonce");
 
-  const result = NextResponse.json(data);
+  const result = NextResponse.json(data, { status: response.status });
   result.headers.set("Cache-Control", "no-store, max-age=0");
   setCartCookies(result, newToken, newNonce);
 
