@@ -4,12 +4,14 @@ const WP_URL = process.env.NEXT_PUBLIC_WP_URL!;
 const CATALOG_CACHE_SECONDS = 900;
 const CATEGORY_CACHE_SECONDS = 3600;
 const SEARCH_CACHE_SECONDS = 300;
+const HOMEPAGE_SNAPSHOT_CACHE_SECONDS = 86400;
 const REQUEST_TIMEOUT_MS = 8000;
 
 export const CACHE_TAGS = {
   catalog: "wc-catalog",
   categories: "wc-categories",
   search: "wc-search",
+  homepage: "homepage-snapshot",
 } as const;
 
 async function fetchJson<T>(
@@ -44,6 +46,15 @@ type PaginatedResult<T> = {
   totalPages: number;
 };
 
+export type HomepageSnapshot = {
+  categories: any[];
+  sale: any[];
+  best_sellers: any[];
+  new_products: any[];
+  updated_at: string;
+  version: string;
+};
+
 async function requestPaginated<T>(
   endpoint: string,
   revalidate = CATALOG_CACHE_SECONDS,
@@ -64,6 +75,24 @@ async function requestPaginated<T>(
   const totalPages = Number(response.headers.get("X-WP-TotalPages") ?? 1);
 
   return { items, total, totalPages };
+}
+
+export async function getHomepageSnapshot(): Promise<HomepageSnapshot> {
+  if (!WP_URL) {
+    throw new Error("NEXT_PUBLIC_WP_URL is not configured");
+  }
+
+  const result = await fetchJson<{ success: boolean; snapshot: HomepageSnapshot }>(
+    `${WP_URL}/wp-json/custom/v1/homepage-snapshot`,
+    HOMEPAGE_SNAPSHOT_CACHE_SECONDS,
+    [CACHE_TAGS.homepage]
+  );
+
+  if (!result.success || !result.snapshot) {
+    throw new Error("Homepage snapshot is unavailable");
+  }
+
+  return result.snapshot;
 }
 
 export async function getProducts(page = 1, perPage = 24) {
