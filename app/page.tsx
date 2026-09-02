@@ -24,8 +24,8 @@ export default async function Home() {
   } catch {
     const [categories, saleResult, bestSellersResult, products] = await Promise.all([
       getCategories().catch(() => [] as any[]),
-      searchProducts({ onSale: true, perPage: 8 }).catch(() => EMPTY_PAGINATED),
-      searchProducts({ orderby: "popularity", order: "desc", perPage: 8 }).catch(() => EMPTY_PAGINATED),
+      searchProducts({ onSale: true, perPage: 8, timeoutMs: 1500 }).catch(() => EMPTY_PAGINATED),
+      searchProducts({ orderby: "popularity", order: "desc", perPage: 8, timeoutMs: 1500 }).catch(() => EMPTY_PAGINATED),
       getProducts(1, 8).catch(() => [] as any[]),
     ]);
 
