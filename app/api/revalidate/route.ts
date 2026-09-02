@@ -3,6 +3,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { CACHE_TAGS } from "@/lib/woocommerce";
 
 const WP_URL = process.env.NEXT_PUBLIC_WP_URL;
+const FRONTEND_URL = process.env.NEXT_PUBLIC_SITE_URL;
 const SYNC_TIMEOUT_MS = 30000;
 
 function isAuthorized(request: NextRequest) {
@@ -34,6 +35,8 @@ async function syncHomepage(request: NextRequest) {
   const timeout = setTimeout(() => controller.abort(), SYNC_TIMEOUT_MS);
 
   try {
+    // WordPress first builds and validates the complete snapshot. The old
+    // snapshot remains untouched if any WooCommerce request fails.
     const response = await fetch(`${WP_URL}/wp-json/custom/v1/homepage-sync`, {
       method: "POST",
       headers: {
@@ -57,14 +60,27 @@ async function syncHomepage(request: NextRequest) {
       );
     }
 
-    // Only invalidate the frontend after WordPress has safely published the
-    // new snapshot. Existing visitors continue using the previous cache.
-    revalidateTag(CACHE_TAGS.homepage, "max");
+    // The homepage snapshot is now safely published in WordPress.
+    // expire: 0 makes the next homepage render read the new snapshot instead
+    // of serving the previous snapshot as stale content.
+    revalidateTag(CACHE_TAGS.homepage, { expire: 0 });
     revalidatePath("/");
+
+    // Prewarm the homepage from the server so the first customer after a
+    // manual/cron sync does not have to perform the regeneration.
+    let warmed = false;
+    if (FRONTEND_URL) {
+      const warmResponse = await fetch(FRONTEND_URL, {
+        cache: "no-store",
+        headers: { Accept: "text/html" },
+      });
+      warmed = warmResponse.ok;
+    }
 
     return NextResponse.json({
       success: true,
       synced: true,
+      warmed,
       snapshot: data.snapshot,
       now: Date.now(),
     });
@@ -81,12 +97,12 @@ async function syncHomepage(request: NextRequest) {
   }
 }
 
-// Manual WordPress admin button.
+// WordPress admin button uses POST.
 export async function POST(request: NextRequest) {
   return syncHomepage(request);
 }
 
-// Hostinger Cron can call this directly with:
+// Hostinger Cron can use GET directly:
 // curl -fsS "https://YOUR-FRONTEND/api/revalidate?secret=YOUR_SECRET"
 export async function GET(request: NextRequest) {
   return syncHomepage(request);
