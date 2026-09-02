@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getCategories, searchProducts, getProducts } from "@/lib/woocommerce";
+import { getHomepageSnapshot } from "@/lib/woocommerce";
 import ProductCard from "@/app/components/ProductCard";
 import CategoryCircles from "@/app/components/CategoryCircles";
 import BrandCarousel from "@/app/components/BrandCarousel";
@@ -8,24 +8,29 @@ import ProductCarouselSection from "@/app/components/ProductCarouselSection";
 import BrandSpotlightCards from "@/app/components/BrandSpotlightCards";
 import JourneyBanner from "@/app/components/JourneyBanner";
 
-// Keep the homepage cached. Data fetches use ISR so visitors never trigger
-// uncached WooCommerce requests. A refresh can also be forced through the
-// protected /api/revalidate endpoint.
-export const revalidate = 900;
+// The homepage reads one published WordPress snapshot. Visitors never query
+// WooCommerce to build this page. The snapshot is refreshed independently.
+export const revalidate = 86400;
 
-const EMPTY_PAGINATED = { items: [] as any[], total: 0, totalPages: 0 };
+const EMPTY_SNAPSHOT = {
+  categories: [] as any[],
+  sale: [] as any[],
+  best_sellers: [] as any[],
+  new_products: [] as any[],
+  updated_at: "",
+  version: "",
+};
 
 const HERO_IMAGE_1 = { src: "/images/ord.avif", alt: "Featured skincare" };
 const HERO_IMAGE_2 = { src: "/images/anua1.jpg", alt: "Featured skincare" };
 const JOURNEY_BACKDROP = { src: "/images/anua-cover.webp", alt: "Beauty Wishlist" };
 
 export default async function Home() {
-  const [categories, saleResult, bestSellersResult, products] = await Promise.all([
-    getCategories().catch(() => [] as any[]),
-    searchProducts({ onSale: true, perPage: 8 }).catch(() => EMPTY_PAGINATED),
-    searchProducts({ orderby: "popularity", order: "desc", perPage: 8 }).catch(() => EMPTY_PAGINATED),
-    getProducts(1, 8).catch(() => [] as any[]),
-  ]);
+  const snapshot = await getHomepageSnapshot().catch(() => EMPTY_SNAPSHOT);
+  const categories = snapshot.categories;
+  const saleProducts = snapshot.sale;
+  const bestSellers = snapshot.best_sellers;
+  const products = snapshot.new_products;
 
   const topCategories = categories
     .filter((c: any) => c.count > 0)
@@ -116,13 +121,13 @@ export default async function Home() {
       <ProductCarouselSection
         eyebrow="Limited Time"
         title="On Sale Now"
-        products={saleResult.items}
+        products={saleProducts}
         viewAllHref="/shop?sale=true"
       />
       <ProductCarouselSection
         eyebrow="Customer Favorites"
         title="Best Sellers"
-        products={bestSellersResult.items}
+        products={bestSellers}
         viewAllHref="/shop?sort=popularity"
       />
 
