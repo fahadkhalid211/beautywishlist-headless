@@ -1,3 +1,5 @@
+import { fetchStoreApi } from "@/lib/storeApi";
+
 const WP_URL = process.env.NEXT_PUBLIC_WP_URL!;
 
 export type MenuThumbnail = {
@@ -23,23 +25,29 @@ export type MenuItem = {
 };
 
 export async function getMenu(slug: string): Promise<MenuItem[]> {
-  const res = await fetch(`${WP_URL}/wp-json/custom/v1/menu/${slug}`, {
-    next: { revalidate: 300 },
-  });
+  try {
+    const res = await fetchStoreApi(`${WP_URL}/wp-json/custom/v1/menu/${slug}`, {
+      next: { revalidate: 300 },
+      headers: { Accept: "application/json" },
+    });
 
-  if (!res.ok) {
-    console.error(`getMenu("${slug}") failed: ${res.status} ${res.statusText} — check the menu is assigned to the "${slug}" location in Appearance > Menus > Manage Locations.`);
+    if (!res.ok) {
+      console.error(`getMenu("${slug}") failed: ${res.status} ${res.statusText}`);
+      return [];
+    }
+
+    const data = await res.json();
+
+    if (!data.success) {
+      console.error(`getMenu("${slug}") returned an error:`, data.message ?? data);
+      return [];
+    }
+
+    return (data.items ?? []) as MenuItem[];
+  } catch (error) {
+    console.error(`getMenu("${slug}") backend request failed:`, error);
     return [];
   }
-
-  const data = await res.json();
-
-  if (!data.success) {
-    console.error(`getMenu("${slug}") returned an error:`, data.message ?? data);
-    return [];
-  }
-
-  return (data.items ?? []) as MenuItem[];
 }
 
 export function toPath(url: string) {
