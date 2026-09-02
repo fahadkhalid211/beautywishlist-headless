@@ -1,8 +1,16 @@
+type StoreApiInit = RequestInit & {
+  timeoutMs?: number;
+  next?: {
+    revalidate?: number | false;
+    tags?: string[];
+  };
+};
+
 export const STORE_API_TIMEOUT_MS = 8000;
 
 export async function fetchStoreApi(
   input: RequestInfo | URL,
-  init: RequestInit & { timeoutMs?: number } = {}
+  init: StoreApiInit = {}
 ): Promise<Response> {
   const { timeoutMs = STORE_API_TIMEOUT_MS, ...requestInit } = init;
 
