@@ -1,14 +1,10 @@
 import Link from "next/link";
-import Carousel from "@/app/components/Carousel";
 
 type StaticBrand = {
   name: string;
   href: string;
 };
 
-// Static by design -- no WooCommerce fetch. Edit this list directly to
-// change what shows here; each item just needs a display name and the
-// category URL it should link to.
 const BRANDS: StaticBrand[] = [
   { name: "Korean Brands", href: "/category/korean-brands/" },
   { name: "Cleansers", href: "/category/cleansers/" },
@@ -21,26 +17,26 @@ const BRANDS: StaticBrand[] = [
 
 export default function BrandCarousel() {
   return (
-    <section className="mx-auto max-w-7xl px-6 pb-24">
+    <section className="mx-auto w-full max-w-7xl px-6 pb-24">
       <div className="mb-8 flex items-end justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.25em] text-purple-600">Shop by Brand</p>
-          <h2 className="mt-2 font-display text-3xl italic text-ink">Korean Beauty Brands</h2>
+          <h2 className="mt-2 font-display text-3xl italic text-ink">Beauty Brands You’ll Love</h2>
         </div>
         <Link href="/brand" prefetch={false} className="shrink-0 text-sm text-purple-700 hover:underline">
           View More
         </Link>
       </div>
 
-      <Carousel>
+      <div className="grid w-full grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
         {BRANDS.map((brand) => (
           <Link
             key={brand.name}
             href={brand.href}
             prefetch={false}
-            className="group flex w-24 shrink-0 snap-start flex-col items-center text-center sm:w-28"
+            className="group flex w-full flex-col items-center text-center"
           >
-            <div className="relative aspect-square w-full overflow-hidden rounded-full bg-purple-50 ring-1 ring-line transition group-hover:ring-purple-300">
+            <div className="relative aspect-square w-full max-w-40 overflow-hidden rounded-full bg-purple-50 ring-1 ring-line transition group-hover:ring-purple-300">
               <div className="flex h-full items-center justify-center font-display text-lg italic text-purple-400">
                 {brand.name.charAt(0)}
               </div>
@@ -50,7 +46,7 @@ export default function BrandCarousel() {
             </p>
           </Link>
         ))}
-      </Carousel>
+      </div>
     </section>
   );
 }
