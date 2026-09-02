@@ -15,12 +15,16 @@ const fraunces = Fraunces({
   variable: "--font-display",
   style: ["italic"],
   weight: ["400"],
+  display: "swap",
+  preload: true,
 });
 
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-body",
   weight: ["400", "500", "600"],
+  display: "swap",
+  preload: true,
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -75,10 +79,6 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${fraunces.variable} ${manrope.variable}`}>
-      <head>
-        <link rel="preconnect" href={process.env.NEXT_PUBLIC_WP_URL} />
-        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_WP_URL} />
-      </head>
       <body>
         <AuthProvider>
           <WishlistProvider>
