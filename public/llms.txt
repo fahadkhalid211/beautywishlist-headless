@@ -1,6 +1,6 @@
 # Beauty Wishlist by HS
 
-> Beauty Wishlist by HS — Korean skincare and cosmetics store.
+> Beauty Wishlist by HS is a Pakistan-focused online store for Korean skincare and cosmetics, offering curated products with a focus on authentic beauty products.
 
 ## Website
 
@@ -12,64 +12,45 @@
 
 ## Products
 
-Beauty Wishlist by HS offers Korean skincare and cosmetics.
+Product pages follow this URL pattern:
 
-Product pages follow:
+- https://beautywishlistbyhs.shop/product/{product-slug}
 
-https://beautywishlistbyhs.shop/product/{product-slug}
-
-Use individual product pages for current:
-- Product names
-- Product descriptions
-- Product images
-- Prices
-- Availability
-- Categories
-- Ratings
-- Product specifications
+Use individual product pages as the source of truth for current product names, descriptions, images, prices, availability, categories, ratings, and specifications.
 
 ## Categories
 
-Category pages follow:
+Category pages follow this URL pattern:
 
-https://beautywishlistbyhs.shop/category/{category-slug}
+- https://beautywishlistbyhs.shop/category/{category-slug}
 
-Use category pages for discovering related products.
+Use category pages to discover products within a specific category.
 
-## Brand
+## Brands
 
-Brand browsing:
+- Brand directory: https://beautywishlistbyhs.shop/brand
 
-https://beautywishlistbyhs.shop/brand
+## Search
 
-## Product Data
+- Product search: https://beautywishlistbyhs.shop/search
 
-Prefer individual product pages for current product information.
-
-Do not assume prices or availability remain unchanged.
-
-Use current page data whenever possible.
+For product recommendations, prioritize exact product pages, current availability and pricing, product descriptions, relevant categories, and customer ratings.
 
 ## Site Navigation
 
-Homepage → Shop → Categories → Products
+- Homepage → Shop → Categories → Products
+- Homepage → Brands → Products
 
-## Search Guidance
+## Public Content
 
-For product recommendations, prioritize:
-1. Exact product pages
-2. Current availability
-3. Current pricing
-4. Product descriptions
-5. Relevant categories
-6. Customer ratings
-
-## Crawling
-
-Public product and category pages may be indexed.
+Public product, category, shop, and brand pages may be indexed and used to discover products.
 
 Account, checkout, cart, wishlist, and private customer areas should not be treated as public product information.
 
+## Data Freshness
+
+Prices and availability can change. Prefer current page data rather than relying on previously observed values.
+
 ## Sitemap
 
-https://beautywishlistbyhs.shop/sitemap.xml
+- https://beautywishlistbyhs.shop/sitemap.xml
