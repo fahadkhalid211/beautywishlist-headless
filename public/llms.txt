@@ -4,17 +4,17 @@
 
 ## Website
 
-- Homepage: https://beautywishlistbyhs.shop/
-- Shop: https://beautywishlistbyhs.shop/shop
-- Categories: https://beautywishlistbyhs.shop/categories
-- Brands: https://beautywishlistbyhs.shop/brand
-- Sitemap: https://beautywishlistbyhs.shop/sitemap.xml
+- [Homepage](https://beautywishlistbyhs.shop/)
+- [Shop](https://beautywishlistbyhs.shop/shop)
+- [Categories](https://beautywishlistbyhs.shop/categories)
+- [Brands](https://beautywishlistbyhs.shop/brand)
+- [Sitemap](https://beautywishlistbyhs.shop/sitemap.xml)
 
 ## Products
 
 Product pages follow this URL pattern:
 
-- https://beautywishlistbyhs.shop/product/{product-slug}
+- [Product URL pattern](https://beautywishlistbyhs.shop/product/{product-slug})
 
 Use individual product pages as the source of truth for current product names, descriptions, images, prices, availability, categories, ratings, and specifications.
 
@@ -22,24 +22,24 @@ Use individual product pages as the source of truth for current product names, d
 
 Category pages follow this URL pattern:
 
-- https://beautywishlistbyhs.shop/category/{category-slug}
+- [Category URL pattern](https://beautywishlistbyhs.shop/category/{category-slug})
 
 Use category pages to discover products within a specific category.
 
 ## Brands
 
-- Brand directory: https://beautywishlistbyhs.shop/brand
+- [Brand directory](https://beautywishlistbyhs.shop/brand)
 
 ## Search
 
-- Product search: https://beautywishlistbyhs.shop/search
+- [Product search](https://beautywishlistbyhs.shop/search)
 
 For product recommendations, prioritize exact product pages, current availability and pricing, product descriptions, relevant categories, and customer ratings.
 
 ## Site Navigation
 
-- Homepage → Shop → Categories → Products
-- Homepage → Brands → Products
+- [Homepage](https://beautywishlistbyhs.shop/) → [Shop](https://beautywishlistbyhs.shop/shop) → [Categories](https://beautywishlistbyhs.shop/categories) → Products
+- [Homepage](https://beautywishlistbyhs.shop/) → [Brands](https://beautywishlistbyhs.shop/brand) → Products
 
 ## Public Content
 
@@ -53,4 +53,4 @@ Prices and availability can change. Prefer current page data rather than relying
 
 ## Sitemap
 
-- https://beautywishlistbyhs.shop/sitemap.xml
+- [XML Sitemap](https://beautywishlistbyhs.shop/sitemap.xml)
