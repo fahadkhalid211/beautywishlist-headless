@@ -1,6 +1,8 @@
 import { fetchStoreApi } from "@/lib/storeApi";
 
 const WP_URL = process.env.NEXT_PUBLIC_WP_URL!;
+const MENU_TIMEOUT_MS = 1200;
+const MENU_CACHE_SECONDS = 86400;
 
 export type MenuThumbnail = {
   id: number;
@@ -25,9 +27,12 @@ export type MenuItem = {
 };
 
 export async function getMenu(slug: string): Promise<MenuItem[]> {
+  if (!WP_URL) return [];
+
   try {
     const res = await fetchStoreApi(`${WP_URL}/wp-json/custom/v1/menu/${slug}`, {
-      next: { revalidate: 300 },
+      next: { revalidate: MENU_CACHE_SECONDS },
+      timeoutMs: MENU_TIMEOUT_MS,
       headers: { Accept: "application/json" },
     });
 
@@ -37,7 +42,6 @@ export async function getMenu(slug: string): Promise<MenuItem[]> {
     }
 
     const data = await res.json();
-
     if (!data.success) {
       console.error(`getMenu("${slug}") returned an error:`, data.message ?? data);
       return [];
