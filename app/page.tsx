@@ -115,6 +115,7 @@ export default async function Home() {
                   className="object-cover"
                   priority
                   fetchPriority="high"
+                  unoptimized
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/20 via-transparent to-transparent" />
               </div>

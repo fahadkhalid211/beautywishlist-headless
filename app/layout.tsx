@@ -75,6 +75,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${fraunces.variable} ${manrope.variable}`}>
+      <head>
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_WP_URL} />
+        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_WP_URL} />
+      </head>
       <body>
         <AuthProvider>
           <WishlistProvider>
