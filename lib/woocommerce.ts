@@ -6,9 +6,19 @@ const CATEGORY_CACHE_SECONDS = 3600;
 const SEARCH_CACHE_SECONDS = 300;
 const REQUEST_TIMEOUT_MS = 8000;
 
-async function fetchJson<T>(url: string, revalidate: number): Promise<T> {
+export const CACHE_TAGS = {
+  catalog: "wc-catalog",
+  categories: "wc-categories",
+  search: "wc-search",
+} as const;
+
+async function fetchJson<T>(
+  url: string,
+  revalidate: number,
+  tags: string[] = []
+): Promise<T> {
   const response = await fetch(url, {
-    next: { revalidate },
+    next: { revalidate, tags },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     headers: { Accept: "application/json" },
   });
@@ -22,9 +32,10 @@ async function fetchJson<T>(url: string, revalidate: number): Promise<T> {
 
 async function request<T>(
   endpoint: string,
-  revalidate = CATALOG_CACHE_SECONDS
+  revalidate = CATALOG_CACHE_SECONDS,
+  tags: string[] = [CACHE_TAGS.catalog]
 ): Promise<T> {
-  return fetchJson<T>(`${API}${endpoint}`, revalidate);
+  return fetchJson<T>(`${API}${endpoint}`, revalidate, tags);
 }
 
 type PaginatedResult<T> = {
@@ -35,10 +46,11 @@ type PaginatedResult<T> = {
 
 async function requestPaginated<T>(
   endpoint: string,
-  revalidate = CATALOG_CACHE_SECONDS
+  revalidate = CATALOG_CACHE_SECONDS,
+  tags: string[] = [CACHE_TAGS.catalog]
 ): Promise<PaginatedResult<T>> {
   const response = await fetch(`${API}${endpoint}`, {
-    next: { revalidate },
+    next: { revalidate, tags },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     headers: { Accept: "application/json" },
   });
@@ -68,7 +80,8 @@ export async function getHomepageImages() {
   try {
     return await fetchJson<any>(
       `${WP_URL}/wp-json/custom/v1/homepage-images`,
-      CATALOG_CACHE_SECONDS
+      CATALOG_CACHE_SECONDS,
+      [CACHE_TAGS.catalog]
     );
   } catch {
     return null;
@@ -86,7 +99,8 @@ export async function getProduct(slug: string) {
 export async function getCategories() {
   return request<any[]>(
     "/products/categories?per_page=100",
-    CATEGORY_CACHE_SECONDS
+    CATEGORY_CACHE_SECONDS,
+    [CACHE_TAGS.categories]
   );
 }
 
@@ -133,6 +147,7 @@ export async function searchProducts(params: {
 
   return requestPaginated<any>(
     `/products?${query.toString()}`,
-    SEARCH_CACHE_SECONDS
+    SEARCH_CACHE_SECONDS,
+    [CACHE_TAGS.search]
   );
 }
