@@ -12,7 +12,7 @@
  * WordPress Admin -> Settings -> Homepage Images -> Refresh Homepage Data
  *
  * Automated refresh:
- * Hostinger Cron -> Next.js /api/sync-homepage
+ * Hostinger Cron -> Next.js /api/revalidate
  *
  * IMPORTANT:
  * - BW_FRONTEND_URL must be the public Next.js frontend URL.
@@ -25,8 +25,10 @@ if (!defined('ABSPATH')) {
 
 define('BW_FRONTEND_URL', 'https://beautywishlistbyhs.shop');
 define('BW_REVALIDATION_SECRET', 'change-this-to-match-your-env-var');
-
 define('BW_HOMEPAGE_SNAPSHOT_OPTION', 'bw_homepage_snapshot');
+define('BW_HOMEPAGE_SYNC_LOCK', 'bw_homepage_sync_lock');
+
+define('BW_HOMEPAGE_SYNC_LOCK_SECONDS', 180);
 
 add_action('admin_menu', function () {
     add_options_page(
@@ -63,9 +65,9 @@ function bw_render_homepage_images_page() {
         wp_verify_nonce($_POST['bw_refresh_nonce'], 'bw_refresh_homepage')
     ) {
         $response = wp_remote_post(
-            BW_FRONTEND_URL . '/api/sync-homepage',
+            BW_FRONTEND_URL . '/api/revalidate',
             [
-                'timeout' => 30,
+                'timeout' => 120,
                 'headers' => [
                     'X-BW-Sync-Secret' => BW_REVALIDATION_SECRET,
                     'Accept' => 'application/json',
@@ -78,14 +80,20 @@ function bw_render_homepage_images_page() {
         } elseif (wp_remote_retrieve_response_code($response) === 200) {
             $body = json_decode(wp_remote_retrieve_body($response), true);
             $updated = !empty($body['snapshot']['updated_at']) ? $body['snapshot']['updated_at'] : '';
+            $warmed = !empty($body['warmed']);
             $message = 'Homepage data refreshed successfully.';
             if ($updated) {
                 $message .= ' Snapshot updated at ' . esc_html($updated) . '.';
             }
+            if ($warmed) {
+                $message .= ' Homepage cache prewarmed.';
+            }
             echo '<div class="notice notice-success"><p>' . $message . '</p></div>';
         } else {
             $code = wp_remote_retrieve_response_code($response);
-            echo '<div class="notice notice-error"><p>Refresh failed: frontend returned HTTP ' . esc_html($code) . '.</p></div>';
+            $body = json_decode(wp_remote_retrieve_body($response), true);
+            $message = !empty($body['message']) ? $body['message'] : 'Unexpected response from frontend.';
+            echo '<div class="notice notice-error"><p>Refresh failed (HTTP ' . esc_html($code) . '): ' . esc_html($message) . '</p></div>';
         }
     }
 
@@ -185,9 +193,6 @@ function bw_render_homepage_images_page() {
     <?php
 }
 
-/**
- * Register public snapshot read endpoint and protected sync endpoint.
- */
 add_action('rest_api_init', function () {
     register_rest_route('custom/v1', '/homepage-images', [
         'methods'             => 'GET',
@@ -282,60 +287,77 @@ function bw_fetch_store_api_json($url) {
 }
 
 function bw_sync_homepage_snapshot() {
-    $base = trailingslashit(rest_url('wc/store/v1'));
-
-    // Fetch everything before replacing the existing snapshot.
-    $categories = bw_fetch_store_api_json($base . 'products/categories?per_page=100');
-    if (is_wp_error($categories)) {
-        return $categories;
-    }
-
-    $sale_products = bw_fetch_store_api_json($base . 'products?on_sale=true&per_page=8');
-    if (is_wp_error($sale_products)) {
-        return $sale_products;
-    }
-
-    $best_sellers = bw_fetch_store_api_json($base . 'products?orderby=popularity&order=desc&per_page=8');
-    if (is_wp_error($best_sellers)) {
-        return $best_sellers;
-    }
-
-    $new_products = bw_fetch_store_api_json($base . 'products?orderby=date&order=desc&per_page=8');
-    if (is_wp_error($new_products)) {
-        return $new_products;
-    }
-
-    // Only publish after every source request succeeded.
-    $snapshot = [
-        'categories' => array_values(array_filter($categories, 'is_array')),
-        'sale' => array_values(array_filter($sale_products, 'is_array')),
-        'best_sellers' => array_values(array_filter($best_sellers, 'is_array')),
-        'new_products' => array_values(array_filter($new_products, 'is_array')),
-        'updated_at' => current_time('c'),
-        'version' => wp_generate_uuid4(),
-    ];
-
-    if (empty($snapshot['categories']) || empty($snapshot['sale']) && empty($snapshot['best_sellers']) && empty($snapshot['new_products'])) {
+    if (get_transient(BW_HOMEPAGE_SYNC_LOCK)) {
         return new WP_Error(
-            'homepage_sync_empty_snapshot',
-            'WooCommerce returned an empty homepage snapshot. Existing data was kept.',
-            ['status' => 502]
+            'homepage_sync_in_progress',
+            'A homepage sync is already running. The existing snapshot is still safe.',
+            ['status' => 409]
         );
     }
 
-    update_option(BW_HOMEPAGE_SNAPSHOT_OPTION, $snapshot, false);
+    set_transient(BW_HOMEPAGE_SYNC_LOCK, time(), BW_HOMEPAGE_SYNC_LOCK_SECONDS);
 
-    return rest_ensure_response([
-        'success' => true,
-        'snapshot' => [
-            'version' => $snapshot['version'],
-            'updated_at' => $snapshot['updated_at'],
-            'counts' => [
-                'categories' => count($snapshot['categories']),
-                'sale' => count($snapshot['sale']),
-                'best_sellers' => count($snapshot['best_sellers']),
-                'new_products' => count($snapshot['new_products']),
+    try {
+        $base = trailingslashit(rest_url('wc/store/v1'));
+
+        // Fetch everything before replacing the existing snapshot.
+        $categories = bw_fetch_store_api_json($base . 'products/categories?per_page=100');
+        if (is_wp_error($categories)) {
+            return $categories;
+        }
+
+        $sale_products = bw_fetch_store_api_json($base . 'products?on_sale=true&per_page=8');
+        if (is_wp_error($sale_products)) {
+            return $sale_products;
+        }
+
+        $best_sellers = bw_fetch_store_api_json($base . 'products?orderby=popularity&order=desc&per_page=8');
+        if (is_wp_error($best_sellers)) {
+            return $best_sellers;
+        }
+
+        $new_products = bw_fetch_store_api_json($base . 'products?orderby=date&order=desc&per_page=8');
+        if (is_wp_error($new_products)) {
+            return $new_products;
+        }
+
+        // Only publish after every source request succeeded.
+        $snapshot = [
+            'categories' => array_values(array_filter($categories, 'is_array')),
+            'sale' => array_values(array_filter($sale_products, 'is_array')),
+            'best_sellers' => array_values(array_filter($best_sellers, 'is_array')),
+            'new_products' => array_values(array_filter($new_products, 'is_array')),
+            'updated_at' => current_time('c'),
+            'version' => wp_generate_uuid4(),
+        ];
+
+        if (
+            empty($snapshot['categories']) ||
+            (empty($snapshot['sale']) && empty($snapshot['best_sellers']) && empty($snapshot['new_products']))
+        ) {
+            return new WP_Error(
+                'homepage_sync_empty_snapshot',
+                'WooCommerce returned an empty homepage snapshot. Existing data was kept.',
+                ['status' => 502]
+            );
+        }
+
+        update_option(BW_HOMEPAGE_SNAPSHOT_OPTION, $snapshot, false);
+
+        return rest_ensure_response([
+            'success' => true,
+            'snapshot' => [
+                'version' => $snapshot['version'],
+                'updated_at' => $snapshot['updated_at'],
+                'counts' => [
+                    'categories' => count($snapshot['categories']),
+                    'sale' => count($snapshot['sale']),
+                    'best_sellers' => count($snapshot['best_sellers']),
+                    'new_products' => count($snapshot['new_products']),
+                ],
             ],
-        ],
-    ]);
+        ]);
+    } finally {
+        delete_transient(BW_HOMEPAGE_SYNC_LOCK);
+    }
 }
