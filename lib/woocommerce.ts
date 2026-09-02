@@ -1,3 +1,5 @@
+import { fetchStoreApi } from "@/lib/storeApi";
+
 const API = process.env.NEXT_PUBLIC_WC_STORE_API!;
 const WP_URL = process.env.NEXT_PUBLIC_WP_URL!;
 
@@ -19,9 +21,9 @@ async function fetchJson<T>(
   revalidate: number,
   tags: string[] = []
 ): Promise<T> {
-  const response = await fetch(url, {
+  const response = await fetchStoreApi(url, {
     next: { revalidate, tags },
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    timeoutMs: REQUEST_TIMEOUT_MS,
     headers: { Accept: "application/json" },
   });
 
@@ -37,7 +39,12 @@ async function request<T>(
   revalidate = CATALOG_CACHE_SECONDS,
   tags: string[] = [CACHE_TAGS.catalog]
 ): Promise<T> {
-  return fetchJson<T>(`${API}${endpoint}`, revalidate, tags);
+  try {
+    return await fetchJson<T>(`${API}${endpoint}`, revalidate, tags);
+  } catch (error) {
+    console.error("WooCommerce request failed:", error);
+    return [] as unknown as T;
+  }
 }
 
 type PaginatedResult<T> = {
@@ -60,21 +67,26 @@ async function requestPaginated<T>(
   revalidate = CATALOG_CACHE_SECONDS,
   tags: string[] = [CACHE_TAGS.catalog]
 ): Promise<PaginatedResult<T>> {
-  const response = await fetch(`${API}${endpoint}`, {
-    next: { revalidate, tags },
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    headers: { Accept: "application/json" },
-  });
+  try {
+    const response = await fetchStoreApi(`${API}${endpoint}`, {
+      next: { revalidate, tags },
+      timeoutMs: REQUEST_TIMEOUT_MS,
+      headers: { Accept: "application/json" },
+    });
 
-  if (!response.ok) {
-    throw new Error(`WooCommerce API failed: ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`WooCommerce API failed: ${response.status}`);
+    }
+
+    const items = (await response.json()) as T[];
+    const total = Number(response.headers.get("X-WP-Total") ?? items.length);
+    const totalPages = Number(response.headers.get("X-WP-TotalPages") ?? 1);
+
+    return { items, total, totalPages };
+  } catch (error) {
+    console.error("WooCommerce paginated request failed:", error);
+    return { items: [], total: 0, totalPages: 0 };
   }
-
-  const items = (await response.json()) as T[];
-  const total = Number(response.headers.get("X-WP-Total") ?? items.length);
-  const totalPages = Number(response.headers.get("X-WP-TotalPages") ?? 1);
-
-  return { items, total, totalPages };
 }
 
 export async function getHomepageSnapshot(): Promise<HomepageSnapshot> {
