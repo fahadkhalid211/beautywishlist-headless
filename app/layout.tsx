@@ -27,52 +27,35 @@ const manrope = Manrope({
   preload: true,
 });
 
-export async function generateMetadata(): Promise<Metadata> {
-  const WP_URL = process.env.NEXT_PUBLIC_WP_URL;
-  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || WP_URL || "";
-  let siteIconUrl: string | undefined;
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://beautywishlistbyhs.shop";
 
-  if (WP_URL) {
-    try {
-      const res = await fetch(`${WP_URL}/wp-json/`, {
-        next: { revalidate: 3600 },
-        signal: AbortSignal.timeout(2000),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        siteIconUrl = data?.site_icon_url || undefined;
-      }
-    } catch {
-      // fall back to Next.js's default favicon handling if this fails
-    }
-  }
-
-  return {
-    metadataBase: SITE_URL ? new URL(SITE_URL) : undefined,
-    title: {
-      default: "Beauty Wishlist by HS",
-      template: "%s | Beauty Wishlist by HS",
-    },
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Beauty Wishlist by HS",
+    template: "%s | Beauty Wishlist by HS",
+  },
+  description: "Curated Korean skincare and cosmetics — 100% authentic, picked for glow, not gimmicks.",
+  icons: {
+    icon: "/favicon.ico",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Beauty Wishlist by HS",
+    title: "Beauty Wishlist by HS",
     description: "Curated Korean skincare and cosmetics — 100% authentic, picked for glow, not gimmicks.",
-    icons: siteIconUrl ? { icon: siteIconUrl } : undefined,
-    openGraph: {
-      type: "website",
-      siteName: "Beauty Wishlist by HS",
-      title: "Beauty Wishlist by HS",
-      description: "Curated Korean skincare and cosmetics — 100% authentic, picked for glow, not gimmicks.",
-      locale: "en_US",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: "Beauty Wishlist by HS",
-      description: "Curated Korean skincare and cosmetics — 100% authentic, picked for glow, not gimmicks.",
-    },
-    robots: {
-      index: true,
-      follow: true,
-    },
-  };
-}
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Beauty Wishlist by HS",
+    description: "Curated Korean skincare and cosmetics — 100% authentic, picked for glow, not gimmicks.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default function RootLayout({
   children,
