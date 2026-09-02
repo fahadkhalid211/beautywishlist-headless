@@ -8,29 +8,18 @@ import ProductCarouselSection from "@/app/components/ProductCarouselSection";
 import BrandSpotlightCards from "@/app/components/BrandSpotlightCards";
 import JourneyBanner from "@/app/components/JourneyBanner";
 
-// Fully static with NO automatic time-based refresh -- this page only
-// regenerates when explicitly triggered via POST /api/revalidate (a button
-// in WordPress under Settings -> Homepage Images calls this). Until then,
-// the exact same pre-built HTML is served to everyone: no per-visitor
-// server computation, no ongoing response stream, and no repeated
-// WooCommerce queries on every visit or every few minutes. This also keeps
-// the page structurally immune to the Next.js streaming bug discussed
-// separately (client disconnects mid-stream throwing "The destination
-// stream closed early" -- https://github.com/vercel/next.js/issues/96704).
-export const revalidate = false;
+// Keep the homepage cached. Data fetches use ISR so visitors never trigger
+// uncached WooCommerce requests. A refresh can also be forced through the
+// protected /api/revalidate endpoint.
+export const revalidate = 900;
 
 const EMPTY_PAGINATED = { items: [] as any[], total: 0, totalPages: 0 };
 
-// Static hero/banner images -- provided directly, not sourced from
-// WordPress. Swap these files in /public/images to change them.
 const HERO_IMAGE_1 = { src: "/images/ord.avif", alt: "Featured skincare" };
 const HERO_IMAGE_2 = { src: "/images/anua1.jpg", alt: "Featured skincare" };
 const JOURNEY_BACKDROP = { src: "/images/anua-cover.webp", alt: "Beauty Wishlist" };
 
 export default async function Home() {
-  // Each fetch is individually guarded so a single flaky/unreachable call
-  // can't fail the whole page/regeneration -- it just degrades that one
-  // section instead.
   const [categories, saleResult, bestSellersResult, products] = await Promise.all([
     getCategories().catch(() => [] as any[]),
     searchProducts({ onSale: true, perPage: 8 }).catch(() => EMPTY_PAGINATED),
