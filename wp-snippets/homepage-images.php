@@ -2,16 +2,9 @@
 /**
  * Beauty Wishlist
  * Homepage Images Settings + Safe Homepage Data Snapshot Sync
- *
- * The Next.js homepage reads a stored snapshot instead of querying
- * WooCommerce for every visitor. This file keeps that snapshot in a single
- * WordPress option and only replaces it after every required WooCommerce
- * request succeeds.
  */
 
-if (!defined('ABSPATH')) {
-    exit;
-}
+if (!defined('ABSPATH')) { exit; }
 
 define('BW_FRONTEND_URL', 'https://beautywishlistbyhs.shop');
 define('BW_REVALIDATION_SECRET', 'change-this-to-match-your-env-var');
@@ -25,9 +18,7 @@ add_action('admin_menu', function () {
 });
 
 add_action('admin_enqueue_scripts', function ($hook) {
-    if ($hook === 'settings_page_bw-homepage-images') {
-        wp_enqueue_media();
-    }
+    if ($hook === 'settings_page_bw-homepage-images') { wp_enqueue_media(); }
 });
 
 function bw_render_homepage_images_page() {
@@ -41,12 +32,8 @@ function bw_render_homepage_images_page() {
     if (isset($_POST['bw_refresh_nonce']) && wp_verify_nonce($_POST['bw_refresh_nonce'], 'bw_refresh_homepage')) {
         $response = wp_remote_post(BW_FRONTEND_URL . '/api/revalidate', [
             'timeout' => 120,
-            'headers' => [
-                'X-BW-Sync-Secret' => BW_REVALIDATION_SECRET,
-                'Accept' => 'application/json',
-            ],
+            'headers' => ['X-BW-Sync-Secret' => BW_REVALIDATION_SECRET, 'Accept' => 'application/json'],
         ]);
-
         if (is_wp_error($response)) {
             echo '<div class="notice notice-error"><p>Refresh failed: ' . esc_html($response->get_error_message()) . '</p></div>';
         } else {
@@ -128,17 +115,13 @@ function bw_get_homepage_images() {
 
 function bw_get_homepage_snapshot() {
     $snapshot = get_option(BW_HOMEPAGE_SNAPSHOT_OPTION, null);
-    if (!is_array($snapshot) || empty($snapshot['categories'])) {
-        return new WP_Error('homepage_snapshot_missing','Homepage snapshot has not been created yet.',['status'=>404]);
-    }
+    if (!is_array($snapshot) || empty($snapshot['categories'])) return new WP_Error('homepage_snapshot_missing','Homepage snapshot has not been created yet.',['status'=>404]);
     return rest_ensure_response(['success'=>true,'snapshot'=>$snapshot]);
 }
 
 function bw_homepage_sync_permission(WP_REST_Request $request) {
     $provided = (string) $request->get_header('X-BW-Sync-Secret');
-    if (!$provided || !hash_equals((string) BW_REVALIDATION_SECRET, $provided)) {
-        return new WP_Error('homepage_sync_forbidden','Invalid sync secret.',['status'=>401]);
-    }
+    if (!$provided || !hash_equals((string) BW_REVALIDATION_SECRET, $provided)) return new WP_Error('homepage_sync_forbidden','Invalid sync secret.',['status'=>401]);
     return true;
 }
 
@@ -150,46 +133,35 @@ function bw_fetch_store_api_json($path, $label) {
         'headers' => ['Accept'=>'application/json'],
         'user-agent' => 'BeautyWishlist-HomepageSync/1.0',
     ]);
-
-    if (is_wp_error($response)) {
-        return new WP_Error('homepage_sync_request_error','WooCommerce request failed for ' . $label . ': ' . $response->get_error_message(),['status'=>502]);
-    }
-
+    if (is_wp_error($response)) return new WP_Error('homepage_sync_request_error','WooCommerce request failed for ' . $label . ': ' . $response->get_error_message(),['status'=>502]);
     $status = (int) wp_remote_retrieve_response_code($response);
     $body = wp_remote_retrieve_body($response);
-
     if ($status !== 200) {
         $snippet = trim(wp_strip_all_tags($body));
         if (strlen($snippet) > 300) $snippet = substr($snippet, 0, 300) . '...';
         return new WP_Error('homepage_sync_http_error','WooCommerce Store API returned HTTP ' . $status . ' for ' . $label . '. URL: ' . $url . ($snippet ? ' Response: ' . $snippet : ''),['status'=>502,'upstreamStatus'=>$status]);
     }
-
     $data = json_decode($body, true);
-    if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
-        return new WP_Error('homepage_sync_invalid_json','WooCommerce Store API returned invalid JSON for ' . $label . '.',['status'=>502]);
-    }
-
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) return new WP_Error('homepage_sync_invalid_json','WooCommerce Store API returned invalid JSON for ' . $label . '.',['status'=>502]);
     return $data;
 }
 
 function bw_sync_homepage_snapshot() {
-    if (get_transient(BW_HOMEPAGE_SYNC_LOCK)) {
-        return new WP_Error('homepage_sync_in_progress','A homepage sync is already running. The existing snapshot is still safe.',['status'=>409]);
-    }
-
+    if (get_transient(BW_HOMEPAGE_SYNC_LOCK)) return new WP_Error('homepage_sync_in_progress','A homepage sync is already running. The existing snapshot is still safe.',['status'=>409]);
     set_transient(BW_HOMEPAGE_SYNC_LOCK, time(), BW_HOMEPAGE_SYNC_LOCK_SECONDS);
-
     try {
         $categories = bw_fetch_store_api_json('products/categories?per_page=100', 'categories');
         if (is_wp_error($categories)) return $categories;
 
-        $sale_products = bw_fetch_store_api_json('products?on_sale=true&per_page=8', 'sale products');
+        // Explicitly request catalog-visible products only. This excludes products
+        // set to "Hidden" (not visible in catalog/search) in WooCommerce.
+        $sale_products = bw_fetch_store_api_json('products?on_sale=true&catalog_visibility=visible&per_page=8', 'sale products');
         if (is_wp_error($sale_products)) return $sale_products;
 
-        $best_sellers = bw_fetch_store_api_json('products?orderby=popularity&order=desc&per_page=8', 'best sellers');
+        $best_sellers = bw_fetch_store_api_json('products?orderby=popularity&order=desc&catalog_visibility=visible&per_page=8', 'best sellers');
         if (is_wp_error($best_sellers)) return $best_sellers;
 
-        $new_products = bw_fetch_store_api_json('products?orderby=date&order=desc&per_page=8', 'new products');
+        $new_products = bw_fetch_store_api_json('products?orderby=date&order=desc&catalog_visibility=visible&per_page=8', 'new products');
         if (is_wp_error($new_products)) return $new_products;
 
         $snapshot = [
@@ -200,26 +172,9 @@ function bw_sync_homepage_snapshot() {
             'updated_at' => current_time('c'),
             'version' => wp_generate_uuid4(),
         ];
-
-        if (empty($snapshot['categories']) || (empty($snapshot['sale']) && empty($snapshot['best_sellers']) && empty($snapshot['new_products']))) {
-            return new WP_Error('homepage_sync_empty_snapshot','WooCommerce returned an empty homepage snapshot. Existing data was kept.',['status'=>502]);
-        }
-
+        if (empty($snapshot['categories']) || (empty($snapshot['sale']) && empty($snapshot['best_sellers']) && empty($snapshot['new_products']))) return new WP_Error('homepage_sync_empty_snapshot','WooCommerce returned an empty homepage snapshot. Existing data was kept.',['status'=>502]);
         update_option(BW_HOMEPAGE_SNAPSHOT_OPTION, $snapshot, false);
-
-        return rest_ensure_response([
-            'success'=>true,
-            'snapshot'=>[
-                'version'=>$snapshot['version'],
-                'updated_at'=>$snapshot['updated_at'],
-                'counts'=>[
-                    'categories'=>count($snapshot['categories']),
-                    'sale'=>count($snapshot['sale']),
-                    'best_sellers'=>count($snapshot['best_sellers']),
-                    'new_products'=>count($snapshot['new_products']),
-                ],
-            ],
-        ]);
+        return rest_ensure_response(['success'=>true,'snapshot'=>['version'=>$snapshot['version'],'updated_at'=>$snapshot['updated_at'],'counts'=>['categories'=>count($snapshot['categories']),'sale'=>count($snapshot['sale']),'best_sellers'=>count($snapshot['best_sellers']),'new_products'=>count($snapshot['new_products'])]]]);
     } finally {
         delete_transient(BW_HOMEPAGE_SYNC_LOCK);
     }
