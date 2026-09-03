@@ -12,6 +12,8 @@ function formatMoney(amount: string | number | undefined, minorUnit: number, pre
   return `${prefix}${value.toLocaleString("en-PK", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
+const PROVINCE_OPTIONS = ["Punjab", "Sindh", "KPK", "Balochistan", "Islamabad"];
+
 type ContactAddress = {
   first_name: string;
   last_name: string;
@@ -377,7 +379,7 @@ export default function CheckoutPage() {
                     <Field label="Address line 2 (optional)" value={address.address_2} onChange={(v) => updateAddress("address_2", v)} />
                     <div className="grid grid-cols-2 gap-4">
                       <Field label="City" value={address.city} onChange={(v) => updateAddress("city", v)} required />
-                      <Field label="Province / State" value={address.state} onChange={(v) => updateAddress("state", v)} required />
+                      <Select label="Province" value={address.state} onChange={(v) => updateAddress("state", v)} options={PROVINCE_OPTIONS} required />
                     </div>
 
                     <button
@@ -629,6 +631,41 @@ function Field({
         required={required}
         className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink outline-none focus:border-purple-400"
       />
+    </div>
+  );
+}
+
+function Select({
+  label,
+  value,
+  onChange,
+  options,
+  required = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  required?: boolean;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-xs font-medium text-ink-soft">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required={required}
+        className="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-purple-400"
+      >
+        <option value="" disabled>
+          Select {label}
+        </option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
