@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   },
   description: "Curated Korean skincare and cosmetics — 100% authentic, picked for glow, not gimmicks.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "https://new.beautywishlistbyhs.shop/wp-content/uploads/2025/05/cropped-logo.jpeg",
   },
   openGraph: {
     type: "website",
