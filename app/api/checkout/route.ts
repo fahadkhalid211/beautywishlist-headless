@@ -29,6 +29,15 @@ export async function POST(request: NextRequest) {
     const response = await fetchStoreApi(`${API}/checkout`, {
       method: "POST",
       cache: "no-store",
+      // Placing an order does real work beyond a normal request -- our
+      // custom tax/fee hooks, stock updates, and WordPress sending
+      // confirmation emails can all add real time. The default 8s timeout
+      // (fine for routine browsing calls) was too aggressive here: it
+      // could abort on our side while WordPress kept processing in the
+      // background and successfully created the order a moment later --
+      // the customer would see a false "temporarily unavailable" error for
+      // an order that actually went through.
+      timeoutMs: 25000,
       headers: {
         "Content-Type": "application/json",
         ...(token ? { "Cart-Token": token } : {}),
