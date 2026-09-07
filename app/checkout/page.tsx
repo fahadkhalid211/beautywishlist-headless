@@ -12,7 +12,7 @@ function formatMoney(amount: string | number | undefined, minorUnit: number, pre
   return `${prefix}${value.toLocaleString("en-PK", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
-const PROVINCE_OPTIONS = ["Punjab", "Sindh", "KPK", "Balochistan", "Islamabad"];
+const PROVINCE_OPTIONS = ["Punjab", "Sindh", "KPK", "Balochistan", "Islamabad", "AJK"];
 
 type ContactAddress = {
   first_name: string;
