@@ -12,7 +12,21 @@ function formatMoney(amount: string | number | undefined, minorUnit: number, pre
   return `${prefix}${value.toLocaleString("en-PK", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
-const PROVINCE_OPTIONS = ["Punjab", "Sindh", "KPK", "Balochistan", "Islamabad", "AJK"];
+// WooCommerce's Pakistan state list expects short codes, not full names --
+// sending "Punjab" instead of "PB" fails address validation. Value here is
+// what actually gets submitted; label is what the customer sees.
+const PROVINCE_OPTIONS = [
+  { label: "Punjab", value: "PB" },
+  { label: "Sindh", value: "SD" },
+  { label: "KPK", value: "KP" },
+  { label: "Balochistan", value: "BA" },
+  { label: "Islamabad", value: "IS" },
+  { label: "AJK", value: "JK" },
+];
+
+function provinceLabel(code: string): string {
+  return PROVINCE_OPTIONS.find((p) => p.value === code)?.label || code;
+}
 
 type ContactAddress = {
   first_name: string;
@@ -250,7 +264,7 @@ export default function CheckoutPage() {
               <div className="mt-3 space-y-1 text-sm text-ink-soft">
                 <p className="text-ink">{orderSnapshot.address.first_name} {orderSnapshot.address.last_name}</p>
                 <p>{orderSnapshot.address.address_1}{orderSnapshot.address.address_2 ? `, ${orderSnapshot.address.address_2}` : ""}</p>
-                <p>{orderSnapshot.address.city}, {orderSnapshot.address.state}</p>
+                <p>{orderSnapshot.address.city}, {provinceLabel(orderSnapshot.address.state)}</p>
                 <p>{orderSnapshot.address.email} &middot; {orderSnapshot.address.phone}</p>
                 <p className="pt-2 text-ink">
                   Payment Method: {orderSnapshot.paymentMethodTitle}
@@ -405,7 +419,7 @@ export default function CheckoutPage() {
                     <div className="mt-4 text-sm text-ink-soft">
                       <p className="text-ink">{address.first_name} {address.last_name}</p>
                       <p>{address.address_1}{address.address_2 ? `, ${address.address_2}` : ""}</p>
-                      <p>{address.city}, {address.state}</p>
+                      <p>{address.city}, {provinceLabel(address.state)}</p>
                       <p>{address.email} &middot; {address.phone}</p>
                     </div>
                   </div>
@@ -645,7 +659,7 @@ function Select({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  options: string[];
+  options: { label: string; value: string }[];
   required?: boolean;
 }) {
   return (
@@ -661,8 +675,8 @@ function Select({
           Select {label}
         </option>
         {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </select>
