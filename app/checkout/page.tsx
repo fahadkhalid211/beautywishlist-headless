@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/app/components/cart/CartProvider";
 import { decodeEntities } from "@/lib/decodeEntities";
+import { reportError } from "@/lib/errorReporting";
 
 function formatMoney(amount: string | number | undefined, minorUnit: number, prefix = "") {
   if (amount === undefined) return "";
@@ -139,6 +140,16 @@ export default function CheckoutPage() {
     });
     const data = await response.json();
     if (!response.ok) {
+      // Log full diagnostic details (exactly what we sent + WooCommerce's
+      // full error response, not just its generic message) -- this error
+      // has recurred multiple times without a clear root cause, so we
+      // need the actual field-level detail WooCommerce returns next time
+      // this happens, not another guess.
+      reportError({
+        message: `Address submission failed: ${data?.message || "unknown"}`,
+        stack: JSON.stringify({ sentAddress: address, fullResponse: data }, null, 2),
+        type: "checkout-address-error",
+      });
       throw new Error(data?.message || "Unable to save address");
     }
     return data;

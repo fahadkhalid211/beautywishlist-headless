@@ -1,7 +1,7 @@
 type ReportErrorOptions = {
   message: string;
   stack?: string;
-  type: "react-error-boundary" | "global-error-boundary" | "window-error" | "unhandled-rejection";
+  type: "react-error-boundary" | "global-error-boundary" | "window-error" | "unhandled-rejection" | "checkout-address-error";
 };
 
 export function reportError({ message, stack, type }: ReportErrorOptions) {

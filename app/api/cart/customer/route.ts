@@ -30,6 +30,9 @@ export async function POST(request: NextRequest) {
     });
 
     const data = await response.json();
+    if (!response.ok) {
+      console.error("cart/update-customer failed:", JSON.stringify({ sentAddress: { billing_address, shipping_address }, fullResponse: data }));
+    }
     const result = NextResponse.json(data, { status: response.status });
     const finalToken = response.headers.get("Cart-Token") || token;
     if (finalToken) result.cookies.set("wc_cart_token", finalToken, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 14 });
