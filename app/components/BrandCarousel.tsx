@@ -6,13 +6,13 @@ type StaticBrand = {
 };
 
 const BRANDS: StaticBrand[] = [
-  { name: "Korean Brands", href: "/category/korean-brands/" },
-  { name: "Cleansers", href: "/category/cleansers/" },
-  { name: "Moisturizers", href: "/category/moisturisers/" },
-  { name: "Makeup", href: "/category/makeup/" },
   { name: "CeraVe", href: "/category/cerave/" },
   { name: "Medicube", href: "/category/medicube/" },
   { name: "The Ordinary", href: "/category/the-ordinary/" },
+  { name: "Anua", href: "/category/anua/" },
+  { name: "Dr Althea", href: "/category/dr-althea/" },
+  { name: "Beauty of Joseon", href: "/category/beauty-of-joseon/" },
+  { name: "Purito", href: "/category/purito/" },
 ];
 
 export default function BrandCarousel() {
