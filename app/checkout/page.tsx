@@ -130,12 +130,19 @@ export default function CheckoutPage() {
   }
 
   async function submitAddress() {
+    // Shipping addresses in WooCommerce's Store API don't include an
+    // email field (only billing does) -- sending the exact same object
+    // with email for both was very plausibly causing shipping_address to
+    // fail schema validation for containing an unexpected property.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { email, ...shippingAddress } = address;
+
     const response = await fetch("/api/cart/customer", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         billing_address: address,
-        shipping_address: address,
+        shipping_address: shippingAddress,
       }),
     });
     const data = await response.json();
@@ -147,7 +154,7 @@ export default function CheckoutPage() {
       // this happens, not another guess.
       reportError({
         message: `Address submission failed: ${data?.message || "unknown"}`,
-        stack: JSON.stringify({ sentAddress: address, fullResponse: data }, null, 2),
+        stack: JSON.stringify({ sentBilling: address, sentShipping: shippingAddress, fullResponse: data }, null, 2),
         type: "checkout-address-error",
       });
       throw new Error(data?.message || "Unable to save address");
@@ -212,18 +219,29 @@ export default function CheckoutPage() {
     setError(null);
     setPlacingOrder(true);
     try {
+      // Shipping address doesn't include an email field in WooCommerce's
+      // schema -- same fix as submitAddress, applied here too since this
+      // is a separate call sending its own address payload.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { email, ...shippingAddress } = address;
+
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           billing_address: address,
-          shipping_address: address,
+          shipping_address: shippingAddress,
           payment_method: paymentMethod,
           customer_note: customerNote,
         }),
       });
       const data = await response.json();
       if (!response.ok) {
+        reportError({
+          message: `Order placement failed: ${data?.message || "unknown"}`,
+          stack: JSON.stringify({ sentBilling: address, sentShipping: shippingAddress, fullResponse: data }, null, 2),
+          type: "checkout-address-error",
+        });
         throw new Error(data?.message || "Unable to place order. Please check your details and try again.");
       }
 
