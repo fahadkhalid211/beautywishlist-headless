@@ -42,6 +42,17 @@ type ContactAddress = {
   phone: string;
 };
 
+// Single source of truth for how a shipping address is derived from the
+// one address form the customer fills in. WooCommerce's shipping address
+// schema doesn't include an email field (only billing does), so this
+// strips it out. Used everywhere we submit an address, instead of each
+// call site duplicating its own version of this logic.
+function toShippingAddress(address: ContactAddress): Omit<ContactAddress, "email"> {
+  const { email, ...shippingAddress } = address;
+  void email;
+  return shippingAddress;
+}
+
 const emptyAddress: ContactAddress = {
   first_name: "",
   last_name: "",
@@ -130,12 +141,9 @@ export default function CheckoutPage() {
   }
 
   async function submitAddress() {
-    // Shipping addresses in WooCommerce's Store API don't include an
-    // email field (only billing does) -- sending the exact same object
-    // with email for both was very plausibly causing shipping_address to
-    // fail schema validation for containing an unexpected property.
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { email, ...shippingAddress } = address;
+    // Same address form is used for both billing and shipping -- see
+    // toShippingAddress for the one place that derives shipping from it.
+    const shippingAddress = toShippingAddress(address);
 
     const response = await fetch("/api/cart/customer", {
       method: "POST",
@@ -219,11 +227,9 @@ export default function CheckoutPage() {
     setError(null);
     setPlacingOrder(true);
     try {
-      // Shipping address doesn't include an email field in WooCommerce's
-      // schema -- same fix as submitAddress, applied here too since this
-      // is a separate call sending its own address payload.
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { email, ...shippingAddress } = address;
+      // Same address form is used for both billing and shipping -- see
+      // toShippingAddress for the one place that derives shipping from it.
+      const shippingAddress = toShippingAddress(address);
 
       const response = await fetch("/api/checkout", {
         method: "POST",
