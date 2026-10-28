@@ -9,7 +9,6 @@ const SEARCH_CACHE_SECONDS = 300;
 const HOMEPAGE_SNAPSHOT_CACHE_SECONDS = 86400;
 const REQUEST_TIMEOUT_MS = 8000;
 const HOMEPAGE_TIMEOUT_MS = 2000;
-const HOMEPAGE_FALLBACK_TIMEOUT_MS = 1500;
 
 export const CACHE_TAGS = {
   catalog: "wc-catalog",
@@ -44,8 +43,17 @@ export type HomepageSnapshot = {
   sale: any[];
   best_sellers: any[];
   new_products: any[];
+  hero_image_1?: string;
+  hero_image_2?: string;
+  banner_image?: string;
   updated_at: string;
   version: string;
+};
+
+export type HomepageImages = {
+  hero_image_1?: string;
+  hero_image_2?: string;
+  banner_image?: string;
 };
 
 export type ResourceResult<T> =
@@ -80,8 +88,10 @@ async function requestPaginated<T>(endpoint: string, revalidate = CATALOG_CACHE_
     });
     if (!response.ok) throw new Error(`WooCommerce API failed: ${response.status}`);
     const items = (await response.json()) as T[];
-    const total = Number(response.headers.get("X-WP-Total") ?? items.length);
-    const totalPages = Number(response.headers.get("X-WP-TotalPages") ?? 1);
+    const totalHeader = response.headers.get("x-wp-total") ?? response.headers.get("X-WP-Total");
+    const totalPagesHeader = response.headers.get("x-wp-totalpages") ?? response.headers.get("X-WP-TotalPages");
+    const total = totalHeader ? Number(totalHeader) : items.length;
+    const totalPages = totalPagesHeader ? Number(totalPagesHeader) : 1;
     return { items, total, totalPages };
   } catch (error) {
     console.error("WooCommerce paginated request failed:", error);
@@ -99,10 +109,24 @@ export async function getHomepageSnapshot(): Promise<HomepageSnapshot> {
 export async function getProducts(page = 1, perPage = 24) { return request<any[]>(`/products?page=${page}&per_page=${perPage}`); }
 export async function getFeaturedProducts(perPage = 8) { return request<any[]>(`/products?featured=true&per_page=${perPage}`); }
 
-export async function getHomepageImages() {
+export async function getHomepageImages(): Promise<HomepageImages | null> {
   if (!WP_URL) return null;
-  try { return await fetchJson<any>(`${WP_URL}/wp-json/custom/v1/homepage-images`, CATALOG_CACHE_SECONDS, [CACHE_TAGS.catalog]); }
-  catch { return null; }
+  try {
+    const data = await fetchJson<any>(
+      `${WP_URL}/wp-json/custom/v1/homepage-images`,
+      HOMEPAGE_SNAPSHOT_CACHE_SECONDS,
+      [CACHE_TAGS.homepage, CACHE_TAGS.catalog],
+      HOMEPAGE_TIMEOUT_MS
+    );
+    if (!data || !data.success) return null;
+    return {
+      hero_image_1: data.hero_image_1 || undefined,
+      hero_image_2: data.hero_image_2 || undefined,
+      banner_image: data.banner_image || undefined,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function getProductResource(slug: string): Promise<ResourceResult<any>> {
@@ -116,15 +140,56 @@ export async function getProduct(slug: string) {
   return result.status === "ok" ? result.data : null;
 }
 
-export async function getCategories() {
-  return request<any[]>("/products/categories?per_page=100", CATEGORY_CACHE_SECONDS, [CACHE_TAGS.categories]);
+export async function getCategories(): Promise<any[]> {
+  try {
+    const firstPage = await requestPaginated<any>(
+      "/products/categories?page=1&per_page=100",
+      CATEGORY_CACHE_SECONDS,
+      [CACHE_TAGS.categories]
+    );
+
+    if (!firstPage.items || firstPage.items.length === 0) {
+      return [];
+    }
+
+    const totalPages =
+      firstPage.totalPages > 1
+        ? firstPage.totalPages
+        : firstPage.total > firstPage.items.length
+        ? Math.ceil(firstPage.total / 100)
+        : 1;
+
+    if (totalPages <= 1) {
+      return firstPage.items;
+    }
+
+    const remainingPages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, i) =>
+        request<any[]>(
+          `/products/categories?page=${i + 2}&per_page=100`,
+          CATEGORY_CACHE_SECONDS,
+          [CACHE_TAGS.categories]
+        )
+      )
+    );
+
+    return [...firstPage.items, ...remainingPages.flat()];
+  } catch (error) {
+    console.error("WooCommerce getCategories failed:", error);
+    return [];
+  }
 }
 
 export async function getCategoryResource(slug: string): Promise<ResourceResult<any>> {
-  const result = await requestResource<any[]>("/products/categories?per_page=100", CATEGORY_CACHE_SECONDS, [CACHE_TAGS.categories]);
-  if (result.status !== "ok") return { status: result.status, data: null };
-  const category = result.data.find((c: any) => c.slug === slug);
-  return category ? { status: "ok", data: category } : { status: "not-found", data: null };
+  try {
+    const categories = await getCategories();
+    if (!categories || categories.length === 0) return { status: "unavailable", data: null };
+    const category = categories.find((c: any) => c.slug === slug);
+    return category ? { status: "ok", data: category } : { status: "not-found", data: null };
+  } catch (error) {
+    console.error("WooCommerce getCategoryResource failed:", error);
+    return { status: "unavailable", data: null };
+  }
 }
 
 export async function getCategory(slug: string) {

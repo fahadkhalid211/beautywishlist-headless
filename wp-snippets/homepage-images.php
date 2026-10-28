@@ -18,10 +18,31 @@ add_action('admin_enqueue_scripts', function ($hook) { if ($hook === 'settings_p
 
 function bw_render_homepage_images_page() {
     if (isset($_POST['bw_homepage_images_nonce']) && wp_verify_nonce($_POST['bw_homepage_images_nonce'], 'bw_save_homepage_images')) {
-        update_option('bw_hero_image_1', esc_url_raw($_POST['bw_hero_image_1'] ?? ''));
-        update_option('bw_hero_image_2', esc_url_raw($_POST['bw_hero_image_2'] ?? ''));
-        update_option('bw_banner_image', esc_url_raw($_POST['bw_banner_image'] ?? ''));
-        echo '<div class="notice notice-success"><p>Saved.</p></div>';
+        $hero1 = esc_url_raw($_POST['bw_hero_image_1'] ?? '');
+        $hero2 = esc_url_raw($_POST['bw_hero_image_2'] ?? '');
+        $banner = esc_url_raw($_POST['bw_banner_image'] ?? '');
+        update_option('bw_hero_image_1', $hero1);
+        update_option('bw_hero_image_2', $hero2);
+        update_option('bw_banner_image', $banner);
+
+        $snapshot = get_option(BW_HOMEPAGE_SNAPSHOT_OPTION, null);
+        if (is_array($snapshot)) {
+            $snapshot['hero_image_1'] = $hero1;
+            $snapshot['hero_image_2'] = $hero2;
+            $snapshot['banner_image'] = $banner;
+            $snapshot['updated_at'] = current_time('c');
+            update_option(BW_HOMEPAGE_SNAPSHOT_OPTION, $snapshot, false);
+        }
+
+        $reval = wp_remote_post(BW_FRONTEND_URL . '/api/revalidate', [
+            'timeout' => 15,
+            'headers' => ['X-BW-Sync-Secret' => BW_REVALIDATION_SECRET, 'Accept' => 'application/json'],
+        ]);
+        if (!is_wp_error($reval) && wp_remote_retrieve_response_code($reval) === 200) {
+            echo '<div class="notice notice-success"><p>Saved and frontend cache purged successfully.</p></div>';
+        } else {
+            echo '<div class="notice notice-success"><p>Saved successfully. (Frontend cache will refresh automatically or via Refresh button below).</p></div>';
+        }
     }
     if (isset($_POST['bw_refresh_nonce']) && wp_verify_nonce($_POST['bw_refresh_nonce'], 'bw_refresh_homepage')) {
         $response = wp_remote_post(BW_FRONTEND_URL . '/api/revalidate', ['timeout'=>120,'headers'=>['X-BW-Sync-Secret'=>BW_REVALIDATION_SECRET,'Accept'=>'application/json']]);
@@ -37,7 +58,7 @@ function bw_render_homepage_images_page() {
     }
     $hero1=get_option('bw_hero_image_1',''); $hero2=get_option('bw_hero_image_2',''); $banner=get_option('bw_banner_image',''); $snapshot=get_option(BW_HOMEPAGE_SNAPSHOT_OPTION,[]); $last_updated=is_array($snapshot)?($snapshot['updated_at']??''):'';
     ?>
-    <div class="wrap"><h1>Homepage Images &amp; Data</h1><div class="notice notice-info" style="padding:12px 16px;margin:20px 0;"><p><strong>Homepage product data is snapshot-based.</strong> Visitors read the latest published snapshot and do not wait for WooCommerce.</p><?php if($last_updated): ?><p><strong>Last snapshot:</strong> <?php echo esc_html($last_updated); ?></p><?php else: ?><p><strong>No homepage snapshot exists yet.</strong> Run the refresh once after installing this snippet.</p><?php endif; ?><form method="post" style="margin-top:10px;"><?php wp_nonce_field('bw_refresh_homepage','bw_refresh_nonce'); ?><?php submit_button('Refresh Homepage Data','primary','submit',false); ?></form></div><hr style="margin:30px 0;"><p><em>The image fields below are retained for compatibility. The current Next.js homepage uses local frontend images.</em></p><form method="post"><?php wp_nonce_field('bw_save_homepage_images','bw_homepage_images_nonce'); ?><table class="form-table"><tr><th scope="row">Hero Image 1 (large)</th><td><input type="text" id="bw_hero_image_1" name="bw_hero_image_1" value="<?php echo esc_attr($hero1); ?>" class="regular-text"><button type="button" class="button bw-upload-btn" data-target="bw_hero_image_1">Choose Image</button><div class="bw-preview" id="bw_hero_image_1_preview"><?php if($hero1): ?><img src="<?php echo esc_url($hero1); ?>" style="max-width:220px;margin-top:10px;display:block;"><?php endif; ?></div></td></tr><tr><th scope="row">Hero Image 2 (small, overlapping)</th><td><input type="text" id="bw_hero_image_2" name="bw_hero_image_2" value="<?php echo esc_attr($hero2); ?>" class="regular-text"><button type="button" class="button bw-upload-btn" data-target="bw_hero_image_2">Choose Image</button><div class="bw-preview" id="bw_hero_image_2_preview"><?php if($hero2): ?><img src="<?php echo esc_url($hero2); ?>" style="max-width:220px;margin-top:10px;display:block;"><?php endif; ?></div></td></tr><tr><th scope="row">Full-Width Banner Background</th><td><input type="text" id="bw_banner_image" name="bw_banner_image" value="<?php echo esc_attr($banner); ?>" class="regular-text"><button type="button" class="button bw-upload-btn" data-target="bw_banner_image">Choose Image</button><div class="bw-preview" id="bw_banner_image_preview"><?php if($banner): ?><img src="<?php echo esc_url($banner); ?>" style="max-width:220px;margin-top:10px;display:block;"><?php endif; ?></div></td></tr></table><?php submit_button('Save Images'); ?></form></div>
+    <div class="wrap"><h1>Homepage Images &amp; Data</h1><div class="notice notice-info" style="padding:12px 16px;margin:20px 0;"><p><strong>Homepage product data is snapshot-based.</strong> Visitors read the latest published snapshot and do not wait for WooCommerce.</p><?php if($last_updated): ?><p><strong>Last snapshot:</strong> <?php echo esc_html($last_updated); ?></p><?php else: ?><p><strong>No homepage snapshot exists yet.</strong> Run the refresh once after installing this snippet.</p><?php endif; ?><form method="post" style="margin-top:10px;"><?php wp_nonce_field('bw_refresh_homepage','bw_refresh_nonce'); ?><?php submit_button('Refresh Homepage Data','primary','submit',false); ?></form></div><hr style="margin:30px 0;"><p><strong>Hero &amp; Banner Images:</strong> Configure the hero section images and journey banner image shown on the Next.js frontend. Saving automatically updates the live website.</p><form method="post"><?php wp_nonce_field('bw_save_homepage_images','bw_homepage_images_nonce'); ?><table class="form-table"><tr><th scope="row">Hero Image 1 (large)</th><td><input type="text" id="bw_hero_image_1" name="bw_hero_image_1" value="<?php echo esc_attr($hero1); ?>" class="regular-text"><button type="button" class="button bw-upload-btn" data-target="bw_hero_image_1">Choose Image</button><div class="bw-preview" id="bw_hero_image_1_preview"><?php if($hero1): ?><img src="<?php echo esc_url($hero1); ?>" style="max-width:220px;margin-top:10px;display:block;"><?php endif; ?></div></td></tr><tr><th scope="row">Hero Image 2 (small, overlapping)</th><td><input type="text" id="bw_hero_image_2" name="bw_hero_image_2" value="<?php echo esc_attr($hero2); ?>" class="regular-text"><button type="button" class="button bw-upload-btn" data-target="bw_hero_image_2">Choose Image</button><div class="bw-preview" id="bw_hero_image_2_preview"><?php if($hero2): ?><img src="<?php echo esc_url($hero2); ?>" style="max-width:220px;margin-top:10px;display:block;"><?php endif; ?></div></td></tr><tr><th scope="row">Full-Width Banner Background</th><td><input type="text" id="bw_banner_image" name="bw_banner_image" value="<?php echo esc_attr($banner); ?>" class="regular-text"><button type="button" class="button bw-upload-btn" data-target="bw_banner_image">Choose Image</button><div class="bw-preview" id="bw_banner_image_preview"><?php if($banner): ?><img src="<?php echo esc_url($banner); ?>" style="max-width:220px;margin-top:10px;display:block;"><?php endif; ?></div></td></tr></table><?php submit_button('Save Images'); ?></form></div>
     <script>jQuery(document).ready(function($){$('.bw-upload-btn').on('click',function(e){e.preventDefault();var target=$(this).data('target');var frame=wp.media({title:'Select Image',button:{text:'Use this image'},multiple:false});frame.on('select',function(){var attachment=frame.state().get('selection').first().toJSON();$('#'+target).val(attachment.url);$('#'+target+'_preview').html('<img src="'+attachment.url+'" style="max-width:220px;margin-top:10px;display:block;">');});frame.open();});});</script>
     <?php
 }
@@ -52,11 +73,28 @@ function bw_get_homepage_snapshot(){ $snapshot=get_option(BW_HOMEPAGE_SNAPSHOT_O
 function bw_homepage_sync_permission(WP_REST_Request $request){$provided=(string)$request->get_header('X-BW-Sync-Secret');if(!$provided||!hash_equals((string)BW_REVALIDATION_SECRET,$provided))return new WP_Error('homepage_sync_forbidden','Invalid sync secret.',['status'=>401]);return true;}
 function bw_fetch_store_api_json($path,$label){$url=trailingslashit(BW_WC_STORE_API_BASE_URL).ltrim($path,'/');$response=wp_remote_get($url,['timeout'=>20,'redirection'=>3,'headers'=>['Accept'=>'application/json'],'user-agent'=>'BeautyWishlist-HomepageSync/1.0']);if(is_wp_error($response))return new WP_Error('homepage_sync_request_error','WooCommerce request failed for '.$label.': '.$response->get_error_message(),['status'=>502]);$status=(int)wp_remote_retrieve_response_code($response);$body=wp_remote_retrieve_body($response);if($status!==200){$snippet=trim(wp_strip_all_tags($body));if(strlen($snippet)>300)$snippet=substr($snippet,0,300).'...';return new WP_Error('homepage_sync_http_error','WooCommerce Store API returned HTTP '.$status.' for '.$label.'. URL: '.$url.($snippet?' Response: '.$snippet:''),['status'=>502,'upstreamStatus'=>$status]);}$data=json_decode($body,true);if(json_last_error()!==JSON_ERROR_NONE||!is_array($data))return new WP_Error('homepage_sync_invalid_json','WooCommerce Store API returned invalid JSON for '.$label.'.',['status'=>502]);return $data;}
 
+function bw_fetch_all_store_categories() {
+    $all = [];
+    $page = 1;
+    while ($page <= 10) {
+        $items = bw_fetch_store_api_json('products/categories?per_page=100&page=' . $page, 'categories page ' . $page);
+        if (is_wp_error($items)) {
+            if ($page === 1) return $items;
+            break;
+        }
+        if (!is_array($items) || empty($items)) break;
+        $all = array_merge($all, $items);
+        if (count($items) < 100) break;
+        $page++;
+    }
+    return $all;
+}
+
 function bw_sync_homepage_snapshot(){
     if(get_transient(BW_HOMEPAGE_SYNC_LOCK))return new WP_Error('homepage_sync_in_progress','A homepage sync is already running. The existing snapshot is still safe.',['status'=>409]);
     set_transient(BW_HOMEPAGE_SYNC_LOCK,time(),BW_HOMEPAGE_SYNC_LOCK_SECONDS);
     try{
-        $categories=bw_fetch_store_api_json('products/categories?per_page=100','categories'); if(is_wp_error($categories))return $categories;
+        $categories=bw_fetch_all_store_categories(); if(is_wp_error($categories))return $categories;
         // The Store API exposes published, catalog-visible products here. The explicit
         // visibility filter keeps Hidden products out; drafts are not published and are
         // therefore excluded as well. We additionally sanitize every returned item below.
@@ -79,6 +117,9 @@ function bw_sync_homepage_snapshot(){
             'sale'=>$filter_public($sale_products),
             'best_sellers'=>$filter_public($best_sellers),
             'new_products'=>$filter_public($new_products),
+            'hero_image_1'=>get_option('bw_hero_image_1',''),
+            'hero_image_2'=>get_option('bw_hero_image_2',''),
+            'banner_image'=>get_option('bw_banner_image',''),
             'updated_at'=>current_time('c'),
             'version'=>wp_generate_uuid4(),
         ];

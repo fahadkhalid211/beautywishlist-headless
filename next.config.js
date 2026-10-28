@@ -12,6 +12,18 @@ const nextConfig = {
         protocol: "https",
         hostname: "new.beautywishlistbyhs.shop",
       },
+      {
+        protocol: "https",
+        hostname: "beautywishlistbyhs.shop",
+      },
+      {
+        protocol: "https",
+        hostname: "*.beautywishlistbyhs.shop",
+      },
+      {
+        protocol: "https",
+        hostname: "*.hostingersite.com",
+      },
     ],
   },
   async headers() {

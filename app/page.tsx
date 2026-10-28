@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getHomepageSnapshot, getCategories, searchProducts, getProducts } from "@/lib/woocommerce";
+import { getHomepageSnapshot, getCategories, searchProducts, getProducts, getHomepageImages, type HomepageImages } from "@/lib/woocommerce";
 import ProductCard from "@/app/components/ProductCard";
 import CategoryCircles from "@/app/components/CategoryCircles";
 import BrandCarousel from "@/app/components/BrandCarousel";
@@ -18,15 +18,20 @@ const JOURNEY_BACKDROP = { src: "/images/anua-cover.webp", alt: "Beauty Wishlist
 
 export default async function Home() {
   let snapshot = EMPTY_SNAPSHOT;
+  let homepageImages: HomepageImages | null = null;
 
   try {
-    snapshot = await getHomepageSnapshot();
+    [snapshot, homepageImages] = await Promise.all([
+      getHomepageSnapshot(),
+      getHomepageImages(),
+    ]);
   } catch {
-    const [categories, saleResult, bestSellersResult, products] = await Promise.all([
+    const [categories, saleResult, bestSellersResult, products, images] = await Promise.all([
       getCategories().catch(() => [] as any[]),
       searchProducts({ onSale: true, perPage: 8, timeoutMs: 1500 }).catch(() => EMPTY_PAGINATED),
       searchProducts({ orderby: "popularity", order: "desc", perPage: 8, timeoutMs: 1500 }).catch(() => EMPTY_PAGINATED),
       getProducts(1, 8).catch(() => [] as any[]),
+      getHomepageImages().catch(() => null),
     ]);
 
     snapshot = {
@@ -36,12 +41,18 @@ export default async function Home() {
       best_sellers: bestSellersResult.items,
       new_products: products,
     };
+    homepageImages = images;
   }
 
   const categories = snapshot.categories;
   const saleProducts = snapshot.sale;
   const bestSellers = snapshot.best_sellers;
   const products = snapshot.new_products;
+
+  const heroImage1 = homepageImages?.hero_image_1 || (snapshot as any)?.hero_image_1 || process.env.NEXT_PUBLIC_HERO_IMAGE_1 || HERO_IMAGE_1.src;
+  const heroImage2 = homepageImages?.hero_image_2 || (snapshot as any)?.hero_image_2 || process.env.NEXT_PUBLIC_HERO_IMAGE_2 || HERO_IMAGE_2.src;
+  const bannerImage = homepageImages?.banner_image || (snapshot as any)?.banner_image || process.env.NEXT_PUBLIC_BANNER_IMAGE || JOURNEY_BACKDROP.src;
+
   const topCategories = categories.filter((c: any) => c.count > 0).sort((a: any, b: any) => b.count - a.count).slice(0, 4);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_WP_URL || "";
   const websiteJsonLd = { "@context": "https://schema.org", "@type": "Organization", name: "Beauty Wishlist by HS", url: siteUrl, sameAs: [] };
@@ -61,8 +72,8 @@ export default async function Home() {
             <Link href="/shop" className="mt-8 inline-block rounded-full bg-purple-600 px-8 py-4 text-sm font-medium text-white transition hover:bg-purple-700">Shop Now</Link>
           </div>
           <div className="relative mx-auto h-[420px] w-full max-w-md md:h-[480px]">
-            <div className="absolute inset-0 -rotate-2 overflow-hidden rounded-[2rem] bg-purple-50 shadow-xl shadow-purple-900/10 transition duration-500 hover:rotate-0"><Image src={HERO_IMAGE_1.src} alt={HERO_IMAGE_1.alt} fill sizes="(max-width: 768px) 90vw, 420px" className="object-cover" preload fetchPriority="high" /><div className="absolute inset-0 bg-gradient-to-t from-ink/20 via-transparent to-transparent" /></div>
-            <div className="absolute -bottom-6 -right-4 h-40 w-40 rotate-6 overflow-hidden rounded-3xl border-4 border-white bg-blush shadow-xl transition duration-500 hover:rotate-0 sm:h-48 sm:w-48"><Image src={HERO_IMAGE_2.src} alt={HERO_IMAGE_2.alt} fill sizes="192px" className="object-cover" /></div>
+            <div className="absolute inset-0 -rotate-2 overflow-hidden rounded-[2rem] bg-purple-50 shadow-xl shadow-purple-900/10 transition duration-500 hover:rotate-0"><Image src={heroImage1} alt={HERO_IMAGE_1.alt} fill sizes="(max-width: 768px) 90vw, 420px" className="object-cover" preload fetchPriority="high" /><div className="absolute inset-0 bg-gradient-to-t from-ink/20 via-transparent to-transparent" /></div>
+            <div className="absolute -bottom-6 -right-4 h-40 w-40 rotate-6 overflow-hidden rounded-3xl border-4 border-white bg-blush shadow-xl transition duration-500 hover:rotate-0 sm:h-48 sm:w-48"><Image src={heroImage2} alt={HERO_IMAGE_2.alt} fill sizes="192px" className="object-cover" /></div>
             <div className="absolute -left-4 top-6 flex items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-lg shadow-purple-900/10 sm:-left-8"><div className="flex text-amber-400" role="img" aria-label="5 star rating">{Array.from({ length: 5 }).map((_, i) => <svg key={i} width="12" height="12" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 1l2.6 5.9 6.4.6-4.8 4.3 1.4 6.2L10 15l-5.6 3 1.4-6.2L1 8.5l6.4-.6z" /></svg>)}</div><div className="text-left"><p className="text-xs font-semibold text-ink">Loved by shoppers</p><p className="text-[10px] text-ink-soft">100% Authentic Korean Skincare</p></div></div>
           </div>
         </div>
@@ -70,7 +81,7 @@ export default async function Home() {
       <CategoryCircles categories={topCategories} /><BrandCarousel />
       <ProductCarouselSection eyebrow="Limited Time" title="On Sale Now" products={saleProducts} viewAllHref="/shop?sale=true" />
       <ProductCarouselSection eyebrow="Customer Favorites" title="Best Sellers" products={bestSellers} viewAllHref="/shop?sort=popularity" />
-      <BrandSpotlightCards categories={categories} /><JourneyBanner backgroundImage={JOURNEY_BACKDROP} />
+      <BrandSpotlightCards categories={categories} /><JourneyBanner backgroundImage={{ src: bannerImage, alt: JOURNEY_BACKDROP.alt }} />
       <section className="mx-auto max-w-7xl px-6 pb-24"><div className="mb-10 flex items-end justify-between"><h2 className="font-display text-3xl italic text-ink">New In</h2></div><div className="grid grid-cols-2 gap-x-5 gap-y-12 md:grid-cols-4">{products.map((product: any) => <ProductCard key={product.id} product={product} />)}</div><div className="mt-12 text-center"><Link href="/shop" className="inline-block rounded-full border border-line px-8 py-4 text-sm font-medium text-ink-soft transition hover:border-purple-300 hover:text-purple-700">View All</Link></div></section>
     </main>
   );
