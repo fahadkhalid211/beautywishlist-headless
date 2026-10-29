@@ -268,7 +268,7 @@ export default function CartPage() {
 
               <div className="mt-4 flex items-center justify-center gap-1.5 rounded-2xl border border-purple-200/80 bg-purple-50/80 px-4 py-2.5 text-center text-xs text-purple-800">
                 <span className="text-amber-500">✨</span>
-                <span>Pay online via <strong>Bank Transfer</strong> &amp; get <strong>4% OFF</strong> at checkout!</span>
+                <span>Pay online via <strong>Bank Transfer</strong> &amp; wipe out <strong>4% tax</strong> at checkout!</span>
               </div>
 
               <Link

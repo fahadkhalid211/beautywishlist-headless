@@ -125,7 +125,8 @@ export default function CheckoutPage() {
   const subtotalValue = totals ? Number(totals.total_items) / Math.pow(10, minorUnit) : 0;
   const codTaxPreview = step === 2 && paymentMethod === "cod" ? Math.round(subtotalValue * 0.04) : 0;
   const onlineDiscountPreview = step === 2 && paymentMethod === "bacs" ? Math.round(subtotalValue * 0.04) : 0;
-  const displayTotal = Math.max(0, Number(totals?.total_price ?? 0) + codTaxPreview * Math.pow(10, minorUnit) - onlineDiscountPreview * Math.pow(10, minorUnit));
+  // Shipping is added normally in totals.total_price. Cash on delivery adds 4% tax; paying online wipes out the 4% tax only.
+  const displayTotal = Number(totals?.total_price ?? 0) + codTaxPreview * Math.pow(10, minorUnit);
 
   useEffect(() => {
     fetch("/api/payment-methods")
@@ -347,15 +348,15 @@ export default function CheckoutPage() {
                     <span className="text-ink">{formatMoney(orderSnapshot.codTax, 0, snapPrefix)}</span>
                   </div>
                 )}
-                {orderSnapshot.onlineDiscount > 0 && (
+                {orderSnapshot.paymentMethod === "bacs" && orderSnapshot.onlineDiscount > 0 && (
                   <div className="flex items-center justify-between text-emerald-600 font-medium">
                     <span className="flex items-center gap-1.5">
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                       </svg>
-                      Bank Transfer Discount (4% Off)
+                      4% Tax Waived (Pay Online)
                     </span>
-                    <span>-{formatMoney(orderSnapshot.onlineDiscount, 0, snapPrefix)}</span>
+                    <span>FREE (Saved {formatMoney(orderSnapshot.onlineDiscount, 0, snapPrefix)})</span>
                   </div>
                 )}
               </div>
@@ -363,12 +364,7 @@ export default function CheckoutPage() {
                 <span className="text-sm font-medium text-ink">Total</span>
                 <span className="font-display text-xl italic text-purple-700">
                   {formatMoney(
-                    Math.max(
-                      0,
-                      Number(snapTotals?.total_price ?? 0) +
-                        orderSnapshot.codTax * Math.pow(10, snapMinorUnit) -
-                        orderSnapshot.onlineDiscount * Math.pow(10, snapMinorUnit)
-                    ),
+                    Number(snapTotals?.total_price ?? 0) + orderSnapshot.codTax * Math.pow(10, snapMinorUnit),
                     snapMinorUnit,
                     snapPrefix
                   )}
@@ -508,13 +504,13 @@ export default function CheckoutPage() {
                                       <svg className="h-3 w-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                       </svg>
-                                      4% OFF
+                                      0% TAX (SAVE 4%)
                                     </span>
                                   )}
                                 </span>
                                 {isBacs && (
                                   <p className="mt-1 text-xs font-medium text-purple-700">
-                                    ✨ Pay online via Bank Transfer to get an automatic 4% discount!
+                                    ✨ Pay online via Bank Transfer to waive the 4% tax!
                                   </p>
                                 )}
                               </div>
@@ -640,9 +636,9 @@ export default function CheckoutPage() {
                       <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                       </svg>
-                      Bank Transfer Discount (4% Off)
+                      4% Tax Waived (Pay Online)
                     </span>
-                    <span className="text-emerald-700 font-semibold text-sm">-{formatMoney(onlineDiscountPreview, 0, prefix)}</span>
+                    <span className="text-emerald-700 font-semibold text-sm">FREE (Save {formatMoney(onlineDiscountPreview, 0, prefix)})</span>
                   </div>
                 )}
                 {step === 2 && (

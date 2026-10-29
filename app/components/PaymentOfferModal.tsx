@@ -133,14 +133,14 @@ export default function PaymentOfferModal() {
 
               {/* Description */}
               <p className="mt-3 text-sm leading-6 text-ink-soft">
-                Enjoy an automatic <strong className="font-semibold text-purple-700">4% discount</strong> on your entire order whenever you pay online via <strong className="font-semibold text-ink">Direct Bank Transfer</strong> at checkout.
+                Enjoy zero tax on your entire order whenever you pay online via <strong className="font-semibold text-ink">Direct Bank Transfer</strong> at checkout (wipes out the 4% COD tax).
               </p>
 
               {/* Benefits list */}
               <div className="mt-5 space-y-2 rounded-2xl bg-purple-50/70 p-3.5 text-left text-xs text-ink sm:text-sm border border-purple-100">
                 <div className="flex items-center gap-2">
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-purple-600 text-[10px] text-white">✓</span>
-                  <span>Instant 4% off applied right at checkout</span>
+                  <span>Instant 4% tax wiped out at checkout</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-purple-600 text-[10px] text-white">✓</span>

@@ -133,7 +133,7 @@ export default function CartDrawer() {
             </div>
             <div className="mb-3 flex items-center justify-center gap-1.5 rounded-xl border border-purple-200/70 bg-purple-50/80 px-3 py-2 text-center text-xs text-purple-800">
               <span className="text-amber-500">✨</span>
-              <span>Pay online via <strong>Bank Transfer</strong> &amp; get <strong>4% OFF</strong>!</span>
+              <span>Pay online via <strong>Bank Transfer</strong> &amp; wipe out <strong>4% tax</strong>!</span>
             </div>
             <Link
               href="/checkout"

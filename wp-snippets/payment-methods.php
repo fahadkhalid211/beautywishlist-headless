@@ -30,27 +30,12 @@ add_action('woocommerce_store_api_checkout_update_order_from_request', function 
 
     if ($payment_method === 'bacs') {
 
-        // Paid online — no tax. Force every line item to the built-in
+        // Paid online — wipe out 4% tax. Force every line item to the built-in
         // "Zero rate" tax class so any configured tax rates don't apply.
+        // Shipping is added normally with no additional tax or fee.
         foreach ($order->get_items() as $item) {
             $item->set_tax_class('zero-rate');
             $item->save();
-        }
-
-        // Apply 4% discount on the subtotal for paying online via Direct Bank Transfer (BACS)
-        $subtotal = (float) $order->get_subtotal();
-        $discount = -1 * round($subtotal * 0.04);
-
-        if ($discount < 0) {
-            $item = new WC_Order_Item_Fee();
-            $item->set_name('Online Payment Discount (4% Off)');
-            $item->set_amount($discount);
-            $item->set_total($discount);
-            $item->set_tax_status('none');
-            $item->set_order_id($order->get_id());
-            $item->save();
-
-            $order->add_item($item);
         }
 
         $order->calculate_totals();
