@@ -66,9 +66,22 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-line">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-ink-soft md:flex-row">
-          <p>&copy; {new Date().getFullYear()} Beauty Wishlist. All rights reserved.</p>
-          <p>Made with ❤️ by <a href="https://linktr.ee/fahadkhalid211" target="_blank" rel="noopener noreferrer" className="font-medium hover:text-purple-700 hover:underline">Fahad Khalid</a></p>
+        <div className="mx-auto max-w-7xl px-6 py-6 text-center text-xs text-ink-soft">
+          <p>
+            &copy; {new Date().getFullYear()} Beauty Wishlist. All rights reserved.{" "}
+            <span className="hidden sm:inline">|</span>{" "}
+            <span className="block sm:inline mt-1 sm:mt-0">
+              Made with ❤️ by{" "}
+              <a
+                href="https://wpwithfahad.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium hover:text-purple-700 hover:underline"
+              >
+                Fahad Khalid
+              </a>
+            </span>
+          </p>
         </div>
       </div>
     </footer>
