@@ -78,7 +78,7 @@ export default async function Home() {
           </div>
         </div>
       </section>
-      <CategoryCircles categories={topCategories} /><BrandCarousel />
+      <CategoryCircles categories={topCategories} /><BrandCarousel categories={categories} />
       <ProductCarouselSection eyebrow="Limited Time" title="On Sale Now" products={saleProducts} viewAllHref="/shop?sale=true" />
       <ProductCarouselSection eyebrow="Customer Favorites" title="Best Sellers" products={bestSellers} viewAllHref="/shop?sort=popularity" />
       <BrandSpotlightCards categories={categories} /><JourneyBanner backgroundImage={{ src: bannerImage, alt: JOURNEY_BACKDROP.alt }} />
