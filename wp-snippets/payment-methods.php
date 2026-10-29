@@ -1,15 +1,14 @@
 <?php
 /**
  * Beauty Wishlist
- * Headless Payment Methods API + Payment-Method-Based Tax
+ * Headless Payment Methods API + Payment-Method-Based Discount & Tax
  *
- * Exposes payment method info (description, bank account details).
+ * Exposes payment method info (description, bank account details, discount info).
  *
- * Tax rule: Cash on Delivery orders get a flat 4% tax on the subtotal.
- * Direct Bank Transfer (paid online) orders get no tax at all — any real
- * WooCommerce tax rates are forced to the built-in "Zero rate" tax class
- * for these orders, regardless of what's configured under WooCommerce →
- * Settings → Tax.
+ * Discount & Tax rule:
+ * - Direct Bank Transfer (paid online via BACS): 4% discount on the subtotal.
+ *   Zero tax applied.
+ * - Cash on Delivery (COD): Flat 4% tax on the subtotal.
  *
  * API:
  * https://new.beautywishlistbyhs.shop/wp-json/custom/v1/payment-methods
@@ -21,7 +20,7 @@ if (!defined('ABSPATH')) {
 
 
 /**
- * Apply the payment-method-based tax rule to real orders placed through
+ * Apply the payment-method-based discount or tax rule to real orders placed through
  * the Store API (headless checkout). Official Store API extensibility
  * hook for modifying an order based on the incoming checkout request.
  */
@@ -36,6 +35,22 @@ add_action('woocommerce_store_api_checkout_update_order_from_request', function 
         foreach ($order->get_items() as $item) {
             $item->set_tax_class('zero-rate');
             $item->save();
+        }
+
+        // Apply 4% discount on the subtotal for paying online via Direct Bank Transfer (BACS)
+        $subtotal = (float) $order->get_subtotal();
+        $discount = -1 * round($subtotal * 0.04);
+
+        if ($discount < 0) {
+            $item = new WC_Order_Item_Fee();
+            $item->set_name('Online Payment Discount (4% Off)');
+            $item->set_amount($discount);
+            $item->set_total($discount);
+            $item->set_tax_status('none');
+            $item->set_order_id($order->get_id());
+            $item->save();
+
+            $order->add_item($item);
         }
 
         $order->calculate_totals();
@@ -105,6 +120,9 @@ function bw_get_payment_methods() {
         ];
 
         if ($id === 'bacs') {
+
+            $method['discount_percent'] = 4;
+            $method['discount_label']   = '4% Off';
 
             $accounts = get_option('woocommerce_bacs_accounts', []);
 

@@ -109,6 +109,7 @@ export default function CheckoutPage() {
     paymentMethodTitle: string;
     shippingRateName?: string;
     codTax: number;
+    onlineDiscount: number;
   } | null>(null);
 
   const loading = cart === null;
@@ -123,7 +124,8 @@ export default function CheckoutPage() {
   const canPlaceOrder = step === 2 && (!needsShipping || rates.length === 0 || !!selectedRate);
   const subtotalValue = totals ? Number(totals.total_items) / Math.pow(10, minorUnit) : 0;
   const codTaxPreview = step === 2 && paymentMethod === "cod" ? Math.round(subtotalValue * 0.04) : 0;
-  const displayTotal = Number(totals?.total_price ?? 0) + codTaxPreview * Math.pow(10, minorUnit);
+  const onlineDiscountPreview = step === 2 && paymentMethod === "bacs" ? Math.round(subtotalValue * 0.04) : 0;
+  const displayTotal = Math.max(0, Number(totals?.total_price ?? 0) + codTaxPreview * Math.pow(10, minorUnit) - onlineDiscountPreview * Math.pow(10, minorUnit));
 
   useEffect(() => {
     fetch("/api/payment-methods")
@@ -259,6 +261,7 @@ export default function CheckoutPage() {
         paymentMethod,
         paymentMethodTitle: paymentMethods.find((m) => m.id === paymentMethod)?.title || paymentMethod,
         codTax: codTaxPreview,
+        onlineDiscount: onlineDiscountPreview,
       });
       setOrderResult(data);
       clearCart();
@@ -344,12 +347,28 @@ export default function CheckoutPage() {
                     <span className="text-ink">{formatMoney(orderSnapshot.codTax, 0, snapPrefix)}</span>
                   </div>
                 )}
+                {orderSnapshot.onlineDiscount > 0 && (
+                  <div className="flex items-center justify-between text-emerald-600 font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Bank Transfer Discount (4% Off)
+                    </span>
+                    <span>-{formatMoney(orderSnapshot.onlineDiscount, 0, snapPrefix)}</span>
+                  </div>
+                )}
               </div>
               <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
                 <span className="text-sm font-medium text-ink">Total</span>
                 <span className="font-display text-xl italic text-purple-700">
                   {formatMoney(
-                    Number(snapTotals?.total_price ?? 0) + orderSnapshot.codTax * Math.pow(10, snapMinorUnit),
+                    Math.max(
+                      0,
+                      Number(snapTotals?.total_price ?? 0) +
+                        orderSnapshot.codTax * Math.pow(10, snapMinorUnit) -
+                        orderSnapshot.onlineDiscount * Math.pow(10, snapMinorUnit)
+                    ),
                     snapMinorUnit,
                     snapPrefix
                   )}
@@ -462,25 +481,47 @@ export default function CheckoutPage() {
                   <div className="rounded-3xl border border-line bg-white p-6">
                     <h2 className="font-display text-xl italic text-ink">Payment Method</h2>
                     <div className="mt-4 space-y-3">
-                      {paymentMethods.map((method) => (
-                        <label
-                          key={method.id}
-                          className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 text-sm transition ${
-                            paymentMethod === method.id ? "border-purple-400 bg-purple-50" : "border-line"
-                          }`}
-                        >
-                          <span className="flex items-center gap-3">
-                            <input
-                              type="radio"
-                              name="payment_method"
-                              checked={paymentMethod === method.id}
-                              onChange={() => setPaymentMethod(method.id)}
-                              className="h-4 w-4 text-purple-600 focus:ring-purple-400"
-                            />
-                            <span className="text-ink">{method.title}</span>
-                          </span>
-                        </label>
-                      ))}
+                      {paymentMethods.map((method) => {
+                        const isBacs = method.id === "bacs";
+                        return (
+                          <label
+                            key={method.id}
+                            className={`flex cursor-pointer items-start justify-between rounded-2xl border p-4 text-sm transition ${
+                              paymentMethod === method.id
+                                ? "border-purple-500 bg-purple-50/80 shadow-sm shadow-purple-900/5"
+                                : "border-line hover:border-purple-200"
+                            }`}
+                          >
+                            <span className="flex items-start gap-3">
+                              <input
+                                type="radio"
+                                name="payment_method"
+                                checked={paymentMethod === method.id}
+                                onChange={() => setPaymentMethod(method.id)}
+                                className="mt-0.5 h-4 w-4 text-purple-600 accent-purple-600 focus:ring-purple-400"
+                              />
+                              <div>
+                                <span className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-medium text-ink">{method.title}</span>
+                                  {isBacs && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                                      <svg className="h-3 w-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                      </svg>
+                                      4% OFF
+                                    </span>
+                                  )}
+                                </span>
+                                {isBacs && (
+                                  <p className="mt-1 text-xs font-medium text-purple-700">
+                                    ✨ Pay online via Bank Transfer to get an automatic 4% discount!
+                                  </p>
+                                )}
+                              </div>
+                            </span>
+                          </label>
+                        );
+                      })}
                     </div>
 
                     {paymentMethod === "bacs" && (() => {
@@ -591,6 +632,17 @@ export default function CheckoutPage() {
                   <div className="flex items-center justify-between text-ink-soft">
                     <span>Tax (4%)</span>
                     <span className="text-ink">{formatMoney(codTaxPreview, 0, prefix)}</span>
+                  </div>
+                )}
+                {step === 2 && paymentMethod === "bacs" && onlineDiscountPreview > 0 && (
+                  <div className="flex items-center justify-between text-emerald-700 font-medium bg-emerald-50/80 -mx-2 px-2.5 py-1.5 rounded-xl border border-emerald-200/60">
+                    <span className="flex items-center gap-1.5 text-xs sm:text-sm">
+                      <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Bank Transfer Discount (4% Off)
+                    </span>
+                    <span className="text-emerald-700 font-semibold text-sm">-{formatMoney(onlineDiscountPreview, 0, prefix)}</span>
                   </div>
                 )}
                 {step === 2 && (
