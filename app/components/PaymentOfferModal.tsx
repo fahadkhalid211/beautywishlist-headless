@@ -43,18 +43,18 @@ export default function PaymentOfferModal() {
 
   return (
     <>
-      {/* Sticky Tab at Middle-Left Side of Screen */}
+      {/* Sticky Tab at Middle-Left Side of Screen (Vertical) */}
       {isStickyVisible && !isOpen && (
         <button
           type="button"
           onClick={handleOpen}
           aria-label="Pay Online get 4% Off promotion"
-          className="fixed left-0 top-1/2 -translate-y-1/2 z-40 flex items-center gap-2 rounded-r-2xl bg-gradient-to-r from-purple-700 via-purple-600 to-purple-600 py-3 pl-3 pr-4 text-white shadow-xl shadow-purple-950/25 border-y border-r border-purple-300/40 transition-all duration-300 hover:translate-x-1 hover:shadow-purple-900/40 focus:outline-none focus:ring-2 focus:ring-purple-400 group"
+          className="fixed left-0 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-2 rounded-r-2xl bg-gradient-to-b from-purple-700 via-purple-600 to-purple-700 py-3.5 px-2 sm:px-2.5 text-white shadow-xl shadow-purple-950/30 border-y border-r border-purple-300/40 transition-all duration-300 hover:translate-x-1 hover:shadow-purple-900/40 focus:outline-none focus:ring-2 focus:ring-purple-400 group cursor-pointer"
         >
           {/* Discount Tag Icon */}
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-amber-300 backdrop-blur-xs transition-transform group-hover:scale-110">
+          <span className="flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-amber-300 backdrop-blur-xs transition-transform group-hover:scale-110">
             <svg
-              className="h-4 w-4"
+              className="h-3.5 w-3.5 sm:h-4 sm:w-4"
               viewBox="0 0 24 24"
               fill="currentColor"
               aria-hidden="true"
@@ -63,14 +63,9 @@ export default function PaymentOfferModal() {
             </svg>
           </span>
 
-          {/* Text */}
-          <span className="flex flex-col text-left leading-tight">
-            <span className="text-[10px] font-medium tracking-wider uppercase text-purple-200">
-              Special Offer
-            </span>
-            <span className="text-xs sm:text-sm font-semibold tracking-wide text-white">
-              Pay Online get 4% Off
-            </span>
+          {/* Vertical Text */}
+          <span className="[writing-mode:vertical-rl] rotate-180 text-[11px] sm:text-xs font-semibold tracking-wider text-white whitespace-nowrap py-1">
+            Pay Online get 4% Off
           </span>
         </button>
       )}
