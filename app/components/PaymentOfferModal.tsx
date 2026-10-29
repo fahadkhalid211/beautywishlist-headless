@@ -63,8 +63,8 @@ export default function PaymentOfferModal() {
             </svg>
           </span>
 
-          {/* Vertical Text */}
-          <span className="[writing-mode:vertical-rl] rotate-180 text-[11px] sm:text-xs font-semibold tracking-wider text-white whitespace-nowrap py-1">
+          {/* Vertical Text (heads of text facing right towards page) */}
+          <span className="[writing-mode:vertical-rl] text-[11px] sm:text-xs font-semibold tracking-wider text-white whitespace-nowrap py-1 select-none">
             Pay Online get 4% Off
           </span>
         </button>
