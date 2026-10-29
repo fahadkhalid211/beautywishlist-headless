@@ -3,7 +3,15 @@
 import Image from "next/image";
 import { useState } from "react";
 
-export default function Gallery({ images, alt }: { images: any[]; alt: string }) {
+export default function Gallery({
+  images,
+  alt,
+  wishlistButton,
+}: {
+  images: any[];
+  alt: string;
+  wishlistButton?: React.ReactNode;
+}) {
   const [active, setActive] = useState(0);
   const image = images[active];
 
@@ -23,6 +31,11 @@ export default function Gallery({ images, alt }: { images: any[]; alt: string })
       <div className="relative aspect-square flex-1 overflow-hidden rounded-3xl bg-purple-50">
         {image && (
           <Image src={image.src} alt={image.alt || alt} fill priority sizes="(max-width:768px) 100vw, 50vw" className="object-contain" />
+        )}
+        {wishlistButton && (
+          <div className="absolute right-4 top-4 z-10">
+            {wishlistButton}
+          </div>
         )}
       </div>
     </div>

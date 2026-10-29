@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 type CartContextType = {
   cart: any;
   itemCount: number;
-  addItem: (productId: number, quantity?: number) => Promise<void>;
+  addItem: (productId: number, quantity?: number, openDrawer?: boolean) => Promise<void>;
   updateItem: (key: string, quantity: number) => Promise<void>;
   removeItem: (key: string) => Promise<void>;
   refreshCart: () => Promise<void>;
@@ -35,7 +35,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     refreshCart();
   }, []);
 
-  async function addItem(productId: number, quantity = 1) {
+  async function addItem(productId: number, quantity = 1, openDrawer = true) {
     setLoading(true);
     try {
       const response = await fetch("/api/cart/add", {
@@ -48,7 +48,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         throw new Error(data?.message || data?.error || "Unable to add product");
       }
       setCart(data);
-      setDrawerOpen(true);
+      if (openDrawer) setDrawerOpen(true);
     } finally {
       setLoading(false);
     }
