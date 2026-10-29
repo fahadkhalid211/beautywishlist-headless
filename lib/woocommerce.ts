@@ -103,6 +103,9 @@ export async function getHomepageSnapshot(): Promise<HomepageSnapshot> {
   if (!WP_URL) throw new Error("NEXT_PUBLIC_WP_URL is not configured");
   const result = await fetchJson<{ success: boolean; snapshot: HomepageSnapshot }>(`${WP_URL}/wp-json/custom/v1/homepage-snapshot`, HOMEPAGE_SNAPSHOT_CACHE_SECONDS, [CACHE_TAGS.homepage], HOMEPAGE_TIMEOUT_MS);
   if (!result.success || !result.snapshot) throw new Error("Homepage snapshot is unavailable");
+  if (Array.isArray(result.snapshot.categories) && result.snapshot.categories.length > 0) {
+    result.snapshot.categories = await enrichCategoriesWithImages(result.snapshot.categories);
+  }
   return result.snapshot;
 }
 
@@ -140,6 +143,82 @@ export async function getProduct(slug: string) {
   return result.status === "ok" ? result.data : null;
 }
 
+
+/**
+ * Ensures category images follow the user-defined rule:
+ * 1. If an image is assigned to the category in WooCommerce (category.image?.src), display that image.
+ * 2. If no image is assigned to the category, display the most recent product's photo in that category.
+ */
+export async function enrichCategoriesWithImages(categories: any[]): Promise<any[]> {
+  if (!categories || !Array.isArray(categories) || categories.length === 0) {
+    return categories || [];
+  }
+
+  const needsEnrichment = categories.some((c) => c && c.count > 0 && (!c.image || !c.image.src));
+  if (!needsEnrichment) {
+    return categories;
+  }
+
+  try {
+    // Fetch products ordered by date descending.
+    // Three pages of 100 cover all ~280 products in the catalog.
+    const [p1, p2, p3] = await Promise.all([
+      request<any[]>("/products?orderby=date&order=desc&per_page=100&page=1", CATEGORY_CACHE_SECONDS, [CACHE_TAGS.categories, CACHE_TAGS.catalog]).catch(() => []),
+      request<any[]>("/products?orderby=date&order=desc&per_page=100&page=2", CATEGORY_CACHE_SECONDS, [CACHE_TAGS.categories, CACHE_TAGS.catalog]).catch(() => []),
+      request<any[]>("/products?orderby=date&order=desc&per_page=100&page=3", CATEGORY_CACHE_SECONDS, [CACHE_TAGS.categories, CACHE_TAGS.catalog]).catch(() => []),
+    ]);
+
+    const allProducts = [...(p1 || []), ...(p2 || []), ...(p3 || [])];
+    if (allProducts.length === 0) return categories;
+
+    // Map category ID and slug to the most recent product's first image
+    const recentImageMap = new Map<number | string, { id?: number; src: string; alt?: string }>();
+    for (const prod of allProducts) {
+      const img = prod?.images?.[0];
+      if (!img || !img.src) continue;
+
+      const imgPayload = {
+        id: img.id,
+        src: img.src,
+        alt: img.alt || prod.name || "",
+      };
+
+      for (const cat of (prod.categories || [])) {
+        if (cat.id && !recentImageMap.has(cat.id)) {
+          recentImageMap.set(cat.id, imgPayload);
+        }
+        if (cat.slug && !recentImageMap.has(cat.slug)) {
+          recentImageMap.set(cat.slug, imgPayload);
+        }
+      }
+    }
+
+    return categories.map((category) => {
+      // 1. If user uploaded a category image in WooCommerce, preserve it
+      if (category?.image?.src) {
+        return category;
+      }
+
+      // 2. If no image is assigned to the category, use the most recent product's photo
+      const fallback =
+        (category.id ? recentImageMap.get(category.id) : undefined) ||
+        (category.slug ? recentImageMap.get(category.slug) : undefined);
+
+      if (fallback) {
+        return {
+          ...category,
+          image: fallback,
+        };
+      }
+
+      return category;
+    });
+  } catch (err) {
+    console.error("Failed to enrich categories with recent product images:", err);
+    return categories;
+  }
+}
+
 export async function getCategories(): Promise<any[]> {
   try {
     const firstPage = await requestPaginated<any>(
@@ -160,7 +239,7 @@ export async function getCategories(): Promise<any[]> {
         : 1;
 
     if (totalPages <= 1) {
-      return firstPage.items;
+      return enrichCategoriesWithImages(firstPage.items);
     }
 
     const remainingPages = await Promise.all(
@@ -173,7 +252,8 @@ export async function getCategories(): Promise<any[]> {
       )
     );
 
-    return [...firstPage.items, ...remainingPages.flat()];
+    const allCats = [...firstPage.items, ...remainingPages.flat()];
+    return enrichCategoriesWithImages(allCats);
   } catch (error) {
     console.error("WooCommerce getCategories failed:", error);
     return [];

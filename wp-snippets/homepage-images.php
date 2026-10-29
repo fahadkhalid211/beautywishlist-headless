@@ -90,11 +90,72 @@ function bw_fetch_all_store_categories() {
     return $all;
 }
 
+
+function bw_enrich_categories_with_images($categories) {
+    if (!is_array($categories) || empty($categories)) return $categories;
+
+    foreach ($categories as &$cat) {
+        if (!is_array($cat)) continue;
+
+        // 1. If user uploaded a category image in WooCommerce, keep it
+        if (!empty($cat['image']) && !empty($cat['image']['src'])) {
+            continue;
+        }
+
+        $term_id = !empty($cat['id']) ? (int) $cat['id'] : 0;
+        if ($term_id) {
+            $thumb_id = get_term_meta($term_id, 'thumbnail_id', true);
+            if ($thumb_id) {
+                $src = wp_get_attachment_image_url($thumb_id, 'full');
+                if ($src) {
+                    $cat['image'] = [
+                        'id' => (int) $thumb_id,
+                        'src' => $src,
+                        'alt' => get_post_meta($thumb_id, '_wp_attachment_image_alt', true) ?: ($cat['name'] ?? ''),
+                    ];
+                    continue;
+                }
+            }
+        }
+
+        // 2. If no image assigned, find the most recent published product's photo
+        $term_slug = $cat['slug'] ?? '';
+        if ($term_slug || $term_id) {
+            $recent_prods = function_exists('wc_get_products') ? wc_get_products([
+                'category' => [$term_slug ?: $term_id],
+                'limit'    => 1,
+                'orderby'  => 'date',
+                'order'    => 'DESC',
+                'status'   => 'publish',
+            ]) : [];
+
+            if (!empty($recent_prods)) {
+                $prod = $recent_prods[0];
+                $img_id = $prod->get_image_id();
+                if ($img_id) {
+                    $src = wp_get_attachment_image_url($img_id, 'full');
+                    if ($src) {
+                        $cat['image'] = [
+                            'id' => (int) $img_id,
+                            'src' => $src,
+                            'alt' => get_post_meta($img_id, '_wp_attachment_image_alt', true) ?: $prod->get_name(),
+                        ];
+                    }
+                }
+            }
+        }
+    }
+    unset($cat);
+
+    return $categories;
+}
+
 function bw_sync_homepage_snapshot(){
     if(get_transient(BW_HOMEPAGE_SYNC_LOCK))return new WP_Error('homepage_sync_in_progress','A homepage sync is already running. The existing snapshot is still safe.',['status'=>409]);
     set_transient(BW_HOMEPAGE_SYNC_LOCK,time(),BW_HOMEPAGE_SYNC_LOCK_SECONDS);
     try{
         $categories=bw_fetch_all_store_categories(); if(is_wp_error($categories))return $categories;
+        $categories=bw_enrich_categories_with_images($categories);
         // The Store API exposes published, catalog-visible products here. The explicit
         // visibility filter keeps Hidden products out; drafts are not published and are
         // therefore excluded as well. We additionally sanitize every returned item below.
